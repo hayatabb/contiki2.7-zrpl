@@ -228,16 +228,7 @@ rpl_init(void)
   uip_ds6_addr_t *my_ds6_addr;
   PRINTF("RPL started\n");
   default_instance = NULL;
-<<<<<<< HEAD
   my_info = memb_alloc(&info_mem);
-=======
-<<<<<<< HEAD
-  my_info = memb_alloc(&info_mem);
-=======
-  debug_test1 = sizeof(rpl_selfinfo_t);
-  //memset(&my_info,0,sizeof(rpl_selfinfo_t));
->>>>>>> origin/master
->>>>>>> origin/master
   my_info->my_position.x_axis = node_loc_x;
   my_info->my_position.y_axis = node_loc_y;
   my_ds6_addr = uip_ds6_get_link_local(-1);

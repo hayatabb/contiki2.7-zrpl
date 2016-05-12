@@ -83,11 +83,7 @@ MEMB(super_router_list_mem, struct super_router_list, 64);   // 64 super router 
 static struct ctimer dismiss_timer; 
 void dismiss_subnet(void *ptr);    
 int router_accept_prefix(rpl_position_t *node_position);
-<<<<<<< HEAD
 int router_give_out_prefix(rpl_position_t *node_position,int destination_goal, int prefix_request_time);
-=======
-int router_give_out_prefix(rpl_position_t *node_position,int destination_goal);
->>>>>>> origin/master
 #endif /*EDGE_ROUTER*/
 
 uint8_t debug_test1 = 0;
@@ -196,20 +192,12 @@ dis_input(void)    // finished
 		      //TODO: add_leaf_to_route_table();
 		else if (destination_goal == RPL_ROUTER) {
 			number_node++;
-<<<<<<< HEAD
 			PRINTF("Subnet %x has %d nodes\n",my_info->my_prefix,number_node);
-=======
-			PRINTF("Subnet has %d nodes\n",number_node);
->>>>>>> origin/master
 			//TODO: add_router_to_route_table();
 		}
 	}
 	else  if (uip_is_addr_linklocal_rplnodes_mcast(&UIP_IP_BUF->destipaddr)){
-<<<<<<< HEAD
 		if (router_give_out_prefix(&destination_position,destination_goal,prefix_request_time))         //boardcast DIS 
-=======
-		if ((prefix_request_time > REQUEST_TIME_MAX)||(router_give_out_prefix(&destination_position,destination_goal)))         //boardcast DIS 
->>>>>>> origin/master
 		    dio_output(&from);	 	
 	} 
 #endif
@@ -303,13 +291,7 @@ dio_input(void)
 	 dismiss_prefix_length = buffer[pos++] & 0x3F;
 	 memcpy(&dismiss_prefix, &buffer[pos], dismiss_prefix_length/8);
 	 if ((dismiss_prefix == my_info->my_prefix)&&(destination_goal == RPL_SUPER_ROUTER)){ 
-<<<<<<< HEAD
 	  PRINTF("Subnet %x is dismissed\n",my_info->my_prefix);                           
-=======
-	  PRINTF("Our subnet ");                           // TODO how to compare address
-	  //PRINT6ADDR(&dismiss_prefix);
-	  PRINTF(" is dismissed\n");
->>>>>>> origin/master
       memset(&my_info->my_prefix,0, my_info->prefix_length/8);
 	  my_info->prefix_length = 0;
 	  has_prefix = RPL_NO_PREFIX;
@@ -466,11 +448,7 @@ edge_router_give_out_prefix(rpl_position_t *destination_position, uint8_t reques
   }
 #endif
 #ifdef ROUTER
-<<<<<<< HEAD
 int router_give_out_prefix(rpl_position_t *node_position,int destination_goal, int prefix_request_time){
-=======
-int router_give_out_prefix(rpl_position_t *node_position,int destination_goal){
->>>>>>> origin/master
 	uint8_t distance;                           // here Manhattan Distance is used to simplify calculation
 	uint16_t index;
 	uint8_t random_index;
@@ -480,10 +458,7 @@ int router_give_out_prefix(rpl_position_t *node_position,int destination_goal){
 			case RPL_ROUTER: 
 				 if (my_info->my_goal == RPL_SUPER_ROUTER) 
 				 {
-<<<<<<< HEAD
 					 if (prefix_request_time > REQUEST_TIME_MAX) return 1;                                     // too many times for prfix request
-=======
->>>>>>> origin/master
 					 distance = abs(node_position->x_axis - my_info->my_position.x_axis)+
 								abs(node_position->y_axis - my_info->my_position.y_axis);
 					 if ((distance > SUBNET_RADIUS +10)||(number_node > SUBNET_MAX)) return 0;    // exceed threshold, refuse prefix request directly
@@ -516,7 +491,6 @@ dismiss_subnet(void *ptr){
 	if ((number_node< SUBNET_MIN)&&(my_info->my_goal == RPL_SUPER_ROUTER)){
 		subnet_organ_timeout = 1;
 	    dio_output(NULL);
-<<<<<<< HEAD
 		PRINTF("Subnet %x is dismissed\n",my_info->my_prefix);                           
 		memset(&my_info->my_prefix,0, my_info->prefix_length/8);
 		my_info->prefix_length = 0;
@@ -524,9 +498,6 @@ dismiss_subnet(void *ptr){
 		has_prefix = RPL_NO_PREFIX;
 		request_time = REQUEST_TIME_MAX - 1;
 		rpl_reset_periodic_timer();    
-=======
-		PRINTF("Dismiss_subnet");
->>>>>>> origin/master
 	}
   }
 #endif  
