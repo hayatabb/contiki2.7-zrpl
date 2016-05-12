@@ -101,8 +101,9 @@ typedef uint16_t rpl_ocp_t;
 
 #define RPL_DISMISS_INTERVAL             120 //subnet dismiss timer, s
 #define MAX_DIO_TIMER_INTERVAL           30000 // DIO_timer interval increases gradually, s 
+#define REQUEST_TIME_MAX                7   // maxmal request time
 
-#define ROUTER
+#define EDGE_ROUTER
 
 struct rpl_metric_object_energy {
   uint8_t flags;
@@ -178,18 +179,25 @@ struct rpl_selfinfo {
 	rpl_position_t my_position;
 	uint16_t my_prefix;
 	uint8_t prefix_length;   //16bits
-	//uip_ipaddr_t my_address;
+	uip_ipaddr_t my_address;
 	int my_goal;
 };
 typedef struct rpl_selfinfo rpl_selfinfo_t;
 
+typedef struct super_router_list{
+	struct super_router_list *next;
+    rpl_position_t super_router_position;
+} super_router_list_t;
+
 rpl_selfinfo_t *my_info;
+#ifdef EDGE_ROUTER
+super_router_list_t *my_super_router_list;
+#endif
 uint8_t number_node;                        // current number of nodes in a subnet
 uint8_t number_leaf;                        // current number of leaves of a router
 int has_prefix;                             
 int subnet_organ_timeout;                   //subnet dismiss timer
 uint8_t request_time;                       //no matter whether routers have refused DIO from some super router
-//maybe later refuse time will be considered
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -274,6 +282,7 @@ struct rpl_instance {
 /*---------------------------------------------------------------------------*/
 /* Public RPL functions. */
 void rpl_init(void);
+void super_router_list_init(void);
 void uip_rpl_input(void);
 rpl_dag_t *rpl_set_root(uint8_t instance_id, uip_ipaddr_t * dag_id);
 int rpl_set_prefix(rpl_dag_t *dag, uip_ipaddr_t *prefix, unsigned len);
@@ -284,14 +293,14 @@ rpl_instance_t *rpl_get_instance(uint8_t instance_id);
 void rpl_update_header_empty(void);
 int rpl_update_header_final(uip_ipaddr_t *addr);
 int rpl_verify_header(int);
-void rpl_insert_header(void);
 void rpl_remove_header(void);
 uint8_t rpl_invert_header(void);
+void rpl_insert_header(void);
 uip_ipaddr_t *rpl_get_parent_ipaddr(rpl_parent_t *nbr);
 rpl_rank_t rpl_get_parent_rank(uip_lladdr_t *addr);
 uint16_t rpl_get_parent_link_metric(uip_lladdr_t *addr);
 void rpl_dag_init(void);
-void dismiss_subnet(void *ptr);         
-int in_my_range(rpl_position_t *node_position);
+     
+
 /*---------------------------------------------------------------------------*/
 #endif /* RPL_H */

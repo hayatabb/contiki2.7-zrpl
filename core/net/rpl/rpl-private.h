@@ -49,7 +49,7 @@
 /** \brief Is IPv6 address addr the link-local, all-RPL-nodes
     multicast address? */
 #define uip_is_addr_linklocal_rplnodes_mcast(addr)	    \
-  ((addr)->u8[0] == 0xff) &&				    \
+  (((addr)->u8[0] == 0xff) &&				    \
   ((addr)->u8[1] == 0x02) &&				    \
   ((addr)->u16[1] == 0) &&				    \
   ((addr)->u16[2] == 0) &&				    \
@@ -299,7 +299,7 @@ void rpl_remove_parent(rpl_parent_t *);
 void rpl_move_parent(rpl_dag_t *dag_src, rpl_dag_t *dag_dst, rpl_parent_t *parent);
 rpl_parent_t *rpl_select_parent(rpl_dag_t *dag);
 rpl_dag_t *rpl_select_dag(rpl_instance_t *instance,rpl_parent_t *parent);
-void rpl_recalculate_ranks(void);
+
 
 /* RPL routing table functions. */
 void rpl_remove_routes(rpl_dag_t *dag);
@@ -313,7 +313,7 @@ rpl_of_t *rpl_find_of(rpl_ocp_t);
 
 /* Timer functions. */
 void rpl_schedule_dao(rpl_instance_t *);
-void rpl_reset_dio_timer(rpl_instance_t *);
+void rpl_reset_dior_timer(void);
 void rpl_reset_periodic_timer(void);
 
 /* Route poisoning. */

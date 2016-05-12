@@ -51,16 +51,18 @@
 #include "net/rpl/rpl.h"
 #include "net/packetbuf.h"
 #include "lib/random.h"
+#include "lib/memb.h"
 #include "sys/ctimer.h"
+#include "sys/clock.h"
 #include <stdio.h>
 #include <stdlib.h>
-
+#include "lib/random.h"
 #include <limits.h>
 #include <string.h>
 #include "sys/node-id.h"
 
 
-#define DEBUG DEBUG_NONE
+#define DEBUG 1//DEBUG_NONE
 
 #include "net/uip-debug.h"
 
@@ -70,10 +72,22 @@
 #define UIP_ICMP_BUF     ((struct uip_icmp_hdr *)&uip_buf[uip_l2_l3_hdr_len])
 #define UIP_ICMP_PAYLOAD ((unsigned char *)&uip_buf[uip_l2_l3_icmp_hdr_len])
 /*---------------------------------------------------------------------------*/
-//extern	rpl_selfinfo_t *my_info;
+#ifdef EDGE_ROUTER
 uint16_t calcu_subnet_prefix(rpl_position_t destination_position);
+int add_super_router_list(rpl_position_t *super_router_position);
+int check_super_router_list(rpl_position_t *super_router_position);
+void remove_super_router(rpl_position_t *super_router_position);
+int edge_router_give_out_prefix(rpl_position_t *destination_position, uint8_t request_time);
+MEMB(super_router_list_mem, struct super_router_list, 64);   // 64 super router at most  
+#else
+static struct ctimer dismiss_timer; 
+void dismiss_subnet(void *ptr);    
+int router_accept_prefix(rpl_position_t *node_position);
+int router_give_out_prefix(rpl_position_t *node_position,int destination_goal);
+#endif /*EDGE_ROUTER*/
 
-
+uint8_t debug_test1 = 0;
+uint8_t debug_test2 = 0;
 /*---------------------------------------------------------------------------*/
 static int
 get_global_addr(uip_ipaddr_t *addr)
@@ -132,11 +146,14 @@ dis_input(void)    // finished
   uip_ds6_nbr_t *nbr;
   int destination_goal;
   rpl_position_t destination_position;
-  
+  int prefix_request_time; //request time 
+
    uip_ipaddr_copy(&from, &UIP_IP_BUF->srcipaddr);
+   /*
   PRINTF("RPL: Received a DIS from ");
   PRINT6ADDR(&from);
   PRINTF("\n");
+				   */
   
   if((nbr = uip_ds6_nbr_lookup(&from)) == NULL)       
 	  if((nbr = uip_ds6_nbr_add(&from, (uip_lladdr_t *)
@@ -144,11 +161,13 @@ dis_input(void)    // finished
 								0, NBR_REACHABLE)) != NULL) {
 		  /* set reachable timer */
 		  stimer_set(&nbr->reachable, UIP_ND6_REACHABLE_TIME / 1000);
+		  /*
 		  PRINTF("RPL: Neighbor added to neighbor cache ");
 		  PRINT6ADDR(&from);
 		  PRINTF(", ");
 		  PRINT6ADDR((uip_lladdr_t *)packetbuf_addr(PACKETBUF_ADDR_SENDER));
 		  PRINTF("\n");
+					 */
 	       }
   
   buffer = UIP_ICMP_PAYLOAD;  
@@ -156,37 +175,31 @@ dis_input(void)    // finished
   destination_goal = buffer[pos++];
   destination_position.x_axis = buffer[pos++];
   destination_position.y_axis = buffer[pos++];
-  //destination_position.z_axis = buffer[pos++];
-  request_time = buffer[pos++];
-  //TODO: add checksum 
+  prefix_request_time = buffer[pos++];
 #ifdef EDGE_ROUTER 
-  if (destination_goal == RPL_ROUTER){
-	  //if (edge_router_give_out_prefix(destination_position,request_time)){  //TODO edge_router_give_out_prefix()
-	  dio_output(&from,calcu_subnet_prefix(destination_position));
+  if (destination_goal == RPL_ROUTER)
+	  if (edge_router_give_out_prefix(&destination_position,prefix_request_time)){
+	  if (add_super_router_list(&destination_position))
+	               dio_output(&from,calcu_subnet_prefix(destination_position));
 	  PRINTF("Send out prefix to ");
 	  PRINT6ADDR(&from);
 	  PRINTF("\n");
-      //add_to_super_router_table(&destination_position, UIP_IP_BUF->srcipaddr); Zuo 
   }
 #endif
 #ifdef ROUTER
-  if (destination_goal == RPL_LEAF) 
-    //if (router_give_out_prefix(request_time)&&(has_prefix == RPL_HAS_PREFIX)){  Zuo
-	  if (has_prefix == RPL_HAS_PREFIX){
-	  dio_output(&from);
-	  PRINTF("Send out prefix to ");
-	  PRINT6ADDR(&from);
-	  PRINTF("\n");
-	  //add_leaf_to_router_table();
-	  number_leaf++;
-  }
-if ((my_info->my_goal == RPL_SUPER_ROUTER)&&(destination_goal == RPL_ROUTER)){
-		//&&(uip_is_prefix_equal(&my_info->my_address, &from))){// get a resopnse of last uni DIO  ??
-		  PRINTF("Send out prefix to ");
-		  PRINT6ADDR(&from);
-		  PRINTF("\n");
-		  number_node++;
-	  } 	  
+    if (uip_is_addr_equal(&my_info->my_address, &UIP_IP_BUF->destipaddr)){          //DIO reply
+		if (destination_goal == RPL_LEAF) number_leaf++;
+		      //TODO: add_leaf_to_route_table();
+		else if (destination_goal == RPL_ROUTER) {
+			number_node++;
+			PRINTF("Subnet has %d nodes\n",number_node);
+			//TODO: add_router_to_route_table();
+		}
+	}
+	else  if (uip_is_addr_linklocal_rplnodes_mcast(&UIP_IP_BUF->destipaddr)){
+		if ((prefix_request_time > REQUEST_TIME_MAX)||(router_give_out_prefix(&destination_position,destination_goal)))         //boardcast DIS 
+		    dio_output(&from);	 	
+	} 
 #endif
 }
 /*---------------------------------------------------------------------------*/
@@ -213,15 +226,18 @@ dis_output(uip_ipaddr_t *addr)
   buffer[pos++] = my_info->my_goal;
   buffer[pos++] = my_info->my_position.x_axis;
   buffer[pos++] = my_info->my_position.y_axis;
-  //buffer[pos++] = my_info->my_position.z_axis;
+  request_time++;
+  PRINTF("request %d times\n",request_time);
   buffer[pos++] = request_time;
   if(addr == NULL) {
     uip_create_linklocal_rplnodes_mcast(&tmpaddr);
     addr = &tmpaddr;
   }
+  /*
   PRINTF("RPL: Sending a DIS to ");
   PRINT6ADDR(addr);
   PRINTF("\n");
+  */
   uip_icmp6_send(addr, ICMP6_RPL, RPL_CODE_DIS, pos);
 }
 /*---------------------------------------------------------------------------*/
@@ -237,9 +253,10 @@ dio_input(void)
   uint8_t nodes;            //number of nodes for the incoming subnet
   int destination_goal;
   rpl_position_t destination_position;
-  uint8_t dismiss_prefix_length;
+  uint8_t dismiss_prefix_length;   
   uint16_t dismiss_prefix;
-  struct ctimer dismiss_timer; 
+  uint16_t incoming_prefix;
+  uint8_t incoming_prefix_length;
   uint8_t dismiss_interval;
 
   uip_ipaddr_copy(&from, &UIP_IP_BUF->srcipaddr);
@@ -273,51 +290,46 @@ dio_input(void)
 	 destination_goal = buffer[pos] >>6;
 	 dismiss_prefix_length = buffer[pos++] & 0x3F;
 	 memcpy(&dismiss_prefix, &buffer[pos], dismiss_prefix_length/8);
-	 if ((dismiss_prefix^my_info->my_prefix == 0x007F)&&(destination_goal == RPL_SUPER_ROUTER)){ 
+	 if ((dismiss_prefix == my_info->my_prefix)&&(destination_goal == RPL_SUPER_ROUTER)){ 
 	  PRINTF("Our subnet ");                           // TODO how to compare address
 	  //PRINT6ADDR(&dismiss_prefix);
 	  PRINTF(" is dismissed\n");
       memset(&my_info->my_prefix,0, my_info->prefix_length/8);
 	  has_prefix = RPL_NO_PREFIX;
+	  request_time = REQUEST_TIME_MAX - 1;
+	  rpl_reset_periodic_timer();    
      }
       break;
 #endif /*ifdef ROUTER*/
     case RPL_OPTION_PREFIX_INFO:
 		if (has_prefix == RPL_NO_PREFIX){
 	  destination_goal = buffer[pos] >>6;
-      my_info->prefix_length = buffer[pos++] & 0x3F;   
-      memcpy(&my_info->my_prefix, &buffer[pos], my_info->prefix_length/8);
-	  PRINTF("RPL: Copying prefix information ");  
-	  PRINT6ADDR(&my_info->my_prefix);
-	  PRINTF("\n");
-	  pos += my_info->prefix_length/8;
+      incoming_prefix_length = buffer[pos++] & 0x3F;   
+      memcpy(&incoming_prefix,&buffer[pos], incoming_prefix_length/8);
+	  pos += incoming_prefix_length/8;
 	  destination_position.x_axis = buffer[pos++];
 	  destination_position.y_axis = buffer[pos++];
-	  //destination_position.z_axis = buffer[pos++];
       nodes = buffer[pos++];
 #ifdef ROUTER	  
 	  if (destination_goal == RPL_EDGE_ROUTER){
 	       my_info->my_goal = RPL_SUPER_ROUTER;
+		   has_prefix = RPL_HAS_PREFIX;
+		   my_info->prefix_length = incoming_prefix_length;
+		   memcpy(&my_info->my_prefix ,&incoming_prefix, incoming_prefix_length/8);
 		   ctimer_set(&dismiss_timer, dismiss_interval*CLOCK_SECOND, dismiss_subnet,NULL);
 	   }
 	   if (destination_goal == RPL_SUPER_ROUTER)
-		  if (in_my_range(&destination_position)&&(nodes<SUBNET_MAX)){  //decide to join the subnet
+		  if (router_accept_prefix (&destination_position)){                         //decide to join the subnet 
 			   has_prefix = RPL_HAS_PREFIX;
+			   my_info->prefix_length = incoming_prefix_length;
+			   memcpy(&my_info->my_prefix ,&incoming_prefix, incoming_prefix_length/8);
 		       dis_output(&UIP_IP_BUF->srcipaddr);
-		   }
-			   else { has_prefix = RPL_NO_PREFIX;        //refuse to join the subnet
-			   memset(&my_info->my_prefix,0,my_info->prefix_length/8) ;  //set prefix to 0 again
-			   my_info->prefix_length = 0;                            //set prefix_length to 0 again
-		   }
+			   PRINTF("My_prefix is  %x\n",my_info->my_prefix);
+		   }   
 #endif /*ROUTER*/
 #ifdef LEAF
-		  if (in_my_range(&destination_position)&&nodes<MAX_LEAF_NUMBER){  //decide to join the subnet
-					  has_prefix = RPL_HAS_PREFIX;
-				  dis_output(&UIP_IP_BUF->srcipaddr);}
-					  else { has_prefix = RPL_NO_PREFIX;
-				      memset(&my_info->my_prefix,0,my_info->prefix_length);   //set prefix to 0 again
-				      my_info->prefix_length = 0;                            //set prefix_length to 0 again
-			      }
+				  has_prefix = RPL_HAS_PREFIX;
+				  dis_output(&UIP_IP_BUF->srcipaddr);
 #endif	  /*ifdef LEAF*/
 			  }
       break;
@@ -342,7 +354,7 @@ dio_output(uip_ipaddr_t *addr)
   uip_ipaddr_t tmpaddr;
   buffer = UIP_ICMP_PAYLOAD;
 #ifdef ROUTER
-  if (subnet_organ_timeout)                        //set DIO option info
+  if (subnet_organ_timeout)                       //set DIO option info
 	  buffer[pos++] = RPL_OPTION_SUBNET_TIMEOUT;
   else 
 #endif
@@ -368,53 +380,122 @@ dio_output(uip_ipaddr_t *addr)
 #ifdef ROUTER
     buffer[pos++] = number_node;                        // set node number info
 #endif
-	
-	//TODO: checksum uint8_t
-    PRINTF("RPL: Sending prefix info in DIO for ");
-    PRINT6ADDR(addr);       
-    PRINTF("\n");
-	
 	if(addr == NULL) {
 		uip_create_linklocal_rplnodes_mcast(&tmpaddr);
 		addr = &tmpaddr;
 	}
+	PRINTF("RPL: Sending prefix info in DIO for ");
+    PRINT6ADDR(addr);       
+    PRINTF("\n");
+	
     uip_icmp6_send(addr, ICMP6_RPL, RPL_CODE_DIO, pos);
 }
 #ifdef EDGE_ROUTER
 int
-edge_router_give_out_prefix(rpl_position_t destination_position, uint8_t request_time){
-  //int more_than_radius;
-  //more_than_radius = edge_router_check_route_table (&destination_position);  //Zuo
-  //if (!more_than_radius) return 0;
-  //TODO add some statistics function related to request time
-  return 1;
+edge_router_give_out_prefix(rpl_position_t *destination_position, uint8_t request_time){
+	uint16_t random;
+	uint16_t threshold;
+	
+  if (!check_super_router_list(destination_position))              //There is already a super router in this zone
+	  return 0;
+  random = random_rand();
+  switch (request_time) {
+	  case 1 : threshold =  30000; break;
+	  case 2 : threshold =  10000; break;
+	  case 3 : threshold =  5000; break;
+	  case 4 : threshold =  2500; break;
+	  case 5 : threshold =  1000; break;
+	  default : threshold = 0; break;
   }
-  uint16_t calcu_subnet_prefix(rpl_position_t destination_position){
+  if (random > threshold)
+      return 1;
+  return 0;
+  }
+  uint16_t 
+   calcu_subnet_prefix(rpl_position_t destination_position){               //Calculate prefix based on router position
 	  uint16_t sendout_prefix;
 	 memset(&sendout_prefix,0,sizeof(uint16_t));
-	 sendout_prefix = (destination_position.y_axis<<8) + (destination_position.x_axis);
+	 sendout_prefix = (destination_position.x_axis<<8) + (destination_position.y_axis);
 	 return sendout_prefix;
   }
+  int
+  add_super_router_list(rpl_position_t *super_router_position){                                // Add a new super router to the list
+	  super_router_list_t *p = my_super_router_list;
+	  struct super_router_list *new;
+	  new = memb_alloc(&super_router_list_mem);
+	  if (new != NULL) {
+	  new->super_router_position.x_axis = super_router_position->x_axis;
+	  new->super_router_position.y_axis = super_router_position->y_axis;
+	  new->next = NULL;
+	  while (p->next != NULL)
+		  p=p->next;
+	 p->next = new;
+      return 1; }
+      return 0;
+  }
+  int check_super_router_list(rpl_position_t *super_router_position){                     // Check whether there is already a super router in the zone
+	  super_router_list_t *p;
+	  uint8_t distance;                            // here Manhattan Distance is used to simplify calculation
+	  p = my_super_router_list;
+	  if (p->next == NULL) return 1;   // no super router yet
+	  while (p->next!=NULL){
+		  p=p->next;
+		  distance = abs(super_router_position->x_axis - p->super_router_position.x_axis)+
+					 abs(super_router_position->y_axis - p->super_router_position.y_axis);
+		  if (distance < SUBNET_RADIUS)
+			  return 0;
+	  }
+	  return 1;
+  }
 #endif
-
-int in_my_range(rpl_position_t *node_position){
-	uint8_t distance;                           // here Manhattan Distance is used to simplify calculation
-	distance = abs(node_position->x_axis - my_info->my_position.x_axis)+
-			    abs(node_position->y_axis - my_info->my_position.y_axis);
-	 if (distance < SUBNET_RADIUS)
-		 return 1;
-	 else
-		 return 0;
-}
 #ifdef ROUTER
+int router_give_out_prefix(rpl_position_t *node_position,int destination_goal){
+	uint8_t distance;                           // here Manhattan Distance is used to simplify calculation
+	uint16_t index;
+	uint8_t random_index;
+	if(has_prefix) {
+		switch (destination_goal) {
+			case RPL_LEAF : return 1; break;    //TODO decision function
+			case RPL_ROUTER: 
+				 if (my_info->my_goal == RPL_SUPER_ROUTER) 
+				 {
+					 distance = abs(node_position->x_axis - my_info->my_position.x_axis)+
+								abs(node_position->y_axis - my_info->my_position.y_axis);
+					 if ((distance > SUBNET_RADIUS +10)||(number_node > SUBNET_MAX)) return 0;    // exceed threshold, refuse prefix request directly
+					 index = distance*3/2 + 5*number_node;                                                                  //normalization, 3/2 * distance/25 + number_node/5
+					 random_index = random_rand() % 64;
+					 if (random_index > index) return 1; 
+				 }
+				 break;
+			 default: return 0;break;
+		}
+	}
+	return 0;
+}
+int router_accept_prefix(rpl_position_t *node_position){
+    uint8_t distance;                           // here Manhattan Distance is used to simplify calculation
+	uint16_t index;
+	uint8_t random_index;
+     
+	distance = abs(node_position->x_axis - my_info->my_position.x_axis)+
+			   abs(node_position->y_axis - my_info->my_position.y_axis);
+	if (distance > SUBNET_RADIUS + 10) return 0;        // too far
+	//if (request_time > REQUEST_TIME_MAX) request_time = 5;    //some selection when join subnet although there has been too many times for requesting
+	index = 100 * request_time / (distance*6/5);
+	random_index = random_rand() % 16;
+	if (index > random_index) return 1;
+	return 0;
+}
 void 
 dismiss_subnet(void *ptr){
-	if ((number_node< SUBNET_MIN)&&(my_info->my_goal == RPL_SUPER_ROUTER))
+	if ((number_node< SUBNET_MIN)&&(my_info->my_goal == RPL_SUPER_ROUTER)){
 		subnet_organ_timeout = 1;
 	    dio_output(NULL);
+		PRINTF("Dismiss_subnet");
+	}
   }
 #endif  
-
+  
 void
 uip_rpl_input(void)
 {
