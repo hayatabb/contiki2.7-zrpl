@@ -71,7 +71,7 @@ collect_common_net_print(void)
   uip_ds6_route_t *r;
 
   /* Let's suppose we have only one instance */
-  dag = rpl_get_any_dag();
+  //dag = rpl_get_any_dag();
   if(dag->preferred_parent != NULL) {
     PRINTF("Preferred parent: ");
     PRINT6ADDR(rpl_get_parent_ipaddr(dag->preferred_parent));
@@ -127,7 +127,7 @@ collect_common_send(void)
   parent_etx = 0;
 
   /* Let's suppose we have only one instance */
-  dag = rpl_get_any_dag();
+  //dag = rpl_get_any_dag();
   if(dag != NULL) {
     preferred_parent = dag->preferred_parent;
     if(preferred_parent != NULL) {

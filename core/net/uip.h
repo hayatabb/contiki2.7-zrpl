@@ -1968,11 +1968,15 @@ CCIF extern uip_lladdr_t uip_lladdr;
    (((a)->u16[6]) == 0) &&                       \
    (((a)->u16[7]) == 0))
 /*two addresses are equal*/
-#define uip_is_prefix_equal(a, m) \
+#define uip_is_addr_equal(a, m) \
 ((((a)->u16[0])  == ((m)->u16[0])) &&   \
  (((a)->u16[1])  == ((m)->u16[1])) &&            \
  (((a)->u16[2]) == ((m)->u16[2])) &&            \
- (((a)->u16[3]) == ((m)->u16[3])))
+ (((a)->u16[3]) == ((m)->u16[3])) &&            \
+ (((a)->u16[4]) == ((m)->u16[4])) &&            \
+ (((a)->u16[5]) == ((m)->u16[5])) &&            \
+ (((a)->u16[6]) == ((m)->u16[6])) &&            \
+ (((a)->u16[7]) == ((m)->u16[7])))
 
 /** \brief Is IPv6 address a the link local all-nodes multicast address */
 #define uip_is_addr_linklocal_allnodes_mcast(a)     \

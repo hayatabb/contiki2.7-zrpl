@@ -625,7 +625,7 @@ extern uip_ds6_netif_t uip_ds6_if;
 				break;
             
             case 'L':
-                rpl_local_repair(rpl_get_any_dag());
+                //rpl_local_repair(rpl_get_any_dag());
                  PRINTF_P(PSTR("Local repair initiated\n\r")); 
                  break;
  

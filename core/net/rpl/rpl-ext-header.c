@@ -131,7 +131,7 @@ rpl_verify_header(int uip_ext_opt_offset)
     if(UIP_EXT_HDR_OPT_RPL_BUF->flags & RPL_HDR_OPT_RANK_ERR) {
       PRINTF("RPL: Rank error signalled in RPL option!\n");
       /* We should try to repair it, not implemented for the moment */
-      rpl_reset_dio_timer(instance);
+      //rpl_reset_dio_timer(instance);
       /* Forward the packet anyway. */
       return 0;
     }
@@ -281,31 +281,6 @@ rpl_update_header_final(uip_ipaddr_t *addr)
     }
   }
   return 0;
-}
-/*---------------------------------------------------------------------------*/
-void
-rpl_remove_header(void)
-{
-  uint8_t temp_len;
-
-  uip_ext_len = 0;
-
-  PRINTF("RPL: Verifying the presence of the RPL header option\n");
-  switch(UIP_IP_BUF->proto){
-  case UIP_PROTO_HBHO:
-    PRINTF("RPL: Removing the RPL header option\n");
-    UIP_IP_BUF->proto = UIP_HBHO_BUF->next;
-    temp_len = UIP_IP_BUF->len[1];
-    uip_len -= UIP_HBHO_BUF->len + 8;
-    UIP_IP_BUF->len[1] -= UIP_HBHO_BUF->len + 8;
-    if(UIP_IP_BUF->len[1] > temp_len) {
-      UIP_IP_BUF->len[0]--;
-    }
-    memmove(UIP_EXT_BUF, UIP_HBHO_NEXT_BUF, uip_len - UIP_IPH_LEN);
-    break;
-  default:
-    PRINTF("RPL: No hop-by-hop Option found\n");
-  }
 }
 /*---------------------------------------------------------------------------*/
 uint8_t

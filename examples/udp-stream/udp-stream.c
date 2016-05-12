@@ -101,7 +101,7 @@ create_rpl_dag(uip_ipaddr_t *ipaddr)
     uip_ipaddr_t prefix;
 
     rpl_set_root(RPL_DEFAULT_INSTANCE, ipaddr);
-    dag = rpl_get_any_dag();
+    //dag = rpl_get_any_dag();
     uip_ip6addr(&prefix, 0xaaaa, 0, 0, 0, 0, 0, 0, 0);
     rpl_set_prefix(dag, &prefix, 64);
     printf("created a new RPL dag\n");

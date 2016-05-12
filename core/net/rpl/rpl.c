@@ -45,6 +45,7 @@
 #include "net/uip-ds6.h"
 #include "net/rpl/rpl-private.h"
 #include "net/rpl/rpl.h"
+#include "lib/memb.h"
 
 #define DEBUG DEBUG_NONE
 #include "net/uip-debug.h"
@@ -54,12 +55,13 @@
 #include "sys/node-id.h"
 
 #if UIP_CONF_IPV6
-
-static uint8_t debug_test1 = 0;
 #if RPL_CONF_STATS
 rpl_stats_t rpl_stats;
 #endif
-
+MEMB(info_mem, struct rpl_selfinfo, 1);
+#ifdef EDGE_ROUTER
+MEMB(super_router_list_mem, struct super_router_list, 1);
+#endif
 /*---------------------------------------------------------------------------*/
 void
 rpl_purge_routes(void)
@@ -223,21 +225,27 @@ void
 rpl_init(void)
 {
   uip_ipaddr_t rplmaddr;
+  uip_ds6_addr_t *my_ds6_addr;
   PRINTF("RPL started\n");
   default_instance = NULL;
-  debug_test1 = sizeof(rpl_selfinfo_t);
-  memset(&my_info,0,sizeof(rpl_selfinfo_t));
+  my_info = memb_alloc(&info_mem);
   my_info->my_position.x_axis = node_loc_x;
   my_info->my_position.y_axis = node_loc_y;
-  //my_info->my_position.z_axis = node_loc_z;
+  my_ds6_addr = uip_ds6_get_link_local(-1);
+  uip_ipaddr_copy(&my_info->my_address, &my_ds6_addr->ipaddr);
 #ifdef EDGE_ROUTER
+  my_super_router_list = memb_alloc(&super_router_list_mem);
   my_info->my_goal = RPL_EDGE_ROUTER;
   my_info->prefix_length = 16;
   number_node = 0xff;   // edge router do not contain node number information, thus set to MAX directly.
   has_prefix = RPL_HAS_PREFIX;
+  //my_super_router_list->super_router_position.x_axis = 3;
+  //my_super_router_list->super_router_position.y_axis = 5;
+  //my_super_router_list->next = NULL;
+   super_router_list_init();
 #endif
 #ifdef ROUTER
-  number_node = 0;
+  number_node = 1;
   number_leaf = 0;
   request_time = 0;
   has_prefix = RPL_NO_PREFIX;
@@ -261,4 +269,12 @@ rpl_init(void)
 #endif
 }
 /*---------------------------------------------------------------------------*/
+#ifdef EDGE_ROUTER
+void 
+super_router_list_init(void){                // header of super_router_list, initialized by (0,0)
+	my_super_router_list->super_router_position.x_axis = 0;
+	my_super_router_list->super_router_position.y_axis = 0;
+	my_super_router_list->next = NULL;
+}
+#endif /*EDGE_ROUTER*/
 #endif /* UIP_CONF_IPV6 */

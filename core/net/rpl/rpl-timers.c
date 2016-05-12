@@ -50,14 +50,12 @@
 #include "net/uip-debug.h"
 
 /*---------------------------------------------------------------------------*/
-static struct ctimer periodic_timer;
-
+static struct ctimer periodic_dis_timer;
 static void handle_periodic_timer(void *ptr);
-static void new_dio_interval(rpl_instance_t *instance);
-static void handle_dio_timer(void *ptr);
-
-static uint16_t next_dis;
-
+#ifdef ROUTER
+static struct ctimer periodic_dior_timer;
+static void handle_dior_timer(void *ptr);
+#endif
 /* dio_send_ok is true if the node is ready to send DIOs */
 static uint8_t dio_send_ok;
 
@@ -66,133 +64,52 @@ static void
 handle_periodic_timer(void *ptr)
 {
   rpl_purge_routes();
-  rpl_recalculate_ranks();
 #ifndef EDGE_ROUTER
   clock_time_t waiting;             // random waiting before send out first DIS
-  waiting =  random_rand() % 60;   //waiting for 1-60 s randomly	
+  waiting =  random_rand() % 45;   //waiting for 1-45 s randomly	
   if(has_prefix == RPL_NO_PREFIX) {
   dis_output(NULL);
-  ctimer_set(&periodic_timer,waiting*CLOCK_SECOND,
+  ctimer_set(&periodic_dis_timer,waiting*CLOCK_SECOND,
 			handle_periodic_timer,NULL);		
     }
 #endif
 }
 /*---------------------------------------------------------------------------*/
+#ifdef ROUTER
 static void
-new_dio_interval(rpl_instance_t *instance)
+handle_dior_timer(void *ptr)
 {
-  uint32_t time;
-  clock_time_t ticks;
-
-  /* TODO: too small timer intervals for many cases */
-  time = 1UL << instance->dio_intcurrent;
-
-  /* Convert from milliseconds to CLOCK_TICKS. */
-  ticks = (time * CLOCK_SECOND) / 1000;
-  instance->dio_next_delay = ticks;
-
-  /* random number between I/2 and I */
-  ticks = ticks / 2 + (ticks / 2 * (uint32_t)random_rand()) / RANDOM_RAND_MAX;
-
-  /*
-   * The intervals must be equally long among the nodes for Trickle to
-   * operate efficiently. Therefore we need to calculate the delay between
-   * the randomized time and the start time of the next interval.
-   */
-  instance->dio_next_delay -= ticks;
-  instance->dio_send = 1;
-
-#if RPL_CONF_STATS
-  /* keep some stats */
-  instance->dio_totint++;
-  instance->dio_totrecv += instance->dio_counter;
-  ANNOTATE("#A rank=%u.%u(%u),stats=%d %d %d %d,color=%s\n",
-	   DAG_RANK(instance->current_dag->rank, instance),
-           (10 * (instance->current_dag->rank % instance->min_hoprankinc)) / instance->min_hoprankinc,
-           instance->current_dag->version,
-           instance->dio_totint, instance->dio_totsend,
-           instance->dio_totrecv,instance->dio_intcurrent,
-	   instance->current_dag->rank == ROOT_RANK(instance) ? "BLUE" : "ORANGE");
-#endif /* RPL_CONF_STATS */
-
-  /* reset the redundancy counter */
-  instance->dio_counter = 0;
-
-  /* schedule the timer */
-  PRINTF("RPL: Scheduling DIO timer %lu ticks in future (Interval)\n", ticks);
-  ctimer_set(&instance->dio_timer, ticks, &handle_dio_timer, instance);
+	uint16_t *last_waiting;             // increasint interval for sending DIO
+	uint16_t  waiting;
+	last_waiting = (uint16_t *)ptr;
+	waiting = *last_waiting;
+	if (waiting < 100) *last_waiting +=2;
+	    else if (waiting < 200)*last_waiting ++;   //Maxmal waiting interval set to 200 second
+		dio_output(NULL);
+		ctimer_set(&periodic_dior_timer,waiting*CLOCK_SECOND,
+				   handle_periodic_timer,last_waiting);		
 }
-/*---------------------------------------------------------------------------*/
-static void
-handle_dio_timer(void *ptr)
-{
-  rpl_instance_t *instance;
-
-  instance = (rpl_instance_t *)ptr;
-
-  PRINTF("RPL: DIO Timer triggered\n");
-  if(!dio_send_ok) {
-    if(uip_ds6_get_link_local(ADDR_PREFERRED) != NULL) {
-      dio_send_ok = 1;
-    } else {
-      PRINTF("RPL: Postponing DIO transmission since link local address is not ok\n");
-      ctimer_set(&instance->dio_timer, CLOCK_SECOND, &handle_dio_timer, instance);
-      return;
-    }
-  }
-
-  if(instance->dio_send) {
-    /* send DIO if counter is less than desired redundancy */
-    if(instance->dio_counter < instance->dio_redundancy) {
-#if RPL_CONF_STATS
-      instance->dio_totsend++;
-#endif /* RPL_CONF_STATS */
-#ifndef EDGE_ROUTER
-      dio_output(NULL);
 #endif
-    } else {
-      PRINTF("RPL: Supressing DIO transmission (%d >= %d)\n",
-             instance->dio_counter, instance->dio_redundancy);
-    }
-    instance->dio_send = 0;
-    PRINTF("RPL: Scheduling DIO timer %lu ticks in future (sent)\n",
-           instance->dio_next_delay);
-    ctimer_set(&instance->dio_timer, instance->dio_next_delay, handle_dio_timer, instance);
-  } else {
-    /* check if we need to double interval */
-    if(instance->dio_intcurrent < instance->dio_intmin + instance->dio_intdoubl) {
-      instance->dio_intcurrent++;
-      PRINTF("RPL: DIO Timer interval doubled %d\n", instance->dio_intcurrent);
-    }
-    new_dio_interval(instance);
-  }
-}
 /*---------------------------------------------------------------------------*/
 void
 rpl_reset_periodic_timer(void)        // Zuo 
 {
   clock_time_t waiting;             // random waiting before send out first DIS
-  waiting =  random_rand() % 60;   //waiting for 1-60 s randomly	
-  ctimer_set(&periodic_timer, waiting*CLOCK_SECOND, handle_periodic_timer, NULL);
+  waiting =  random_rand() % 30;   //waiting for 1-60 s randomly	
+  ctimer_set(&periodic_dis_timer, waiting*CLOCK_SECOND, handle_periodic_timer, NULL);
 }
 /*---------------------------------------------------------------------------*/
-/* Resets the DIO timer in the instance to its minimal interval. */
+#ifdef ROUTER
 void
-rpl_reset_dio_timer(rpl_instance_t *instance)
+rpl_reset_dior_timer(void)
 {
-#if !RPL_LEAF_ONLY
-  /* Do not reset if we are already on the minimum interval,
-     unless forced to do so. */
-  if(instance->dio_intcurrent > instance->dio_intmin) {
-    instance->dio_counter = 0;
-    instance->dio_intcurrent = instance->dio_intmin;
-    new_dio_interval(instance);
-  }
-#if RPL_CONF_STATS
+  uint16_t *waiting = 1;
+  ctimer_set(&periodic_dior_timer, CLOCK_SECOND, handle_dior_timer, waiting);
+#if RPL_CONF_STAT
   rpl_stats.resets++;
 #endif /* RPL_CONF_STATS */
-#endif /* RPL_LEAF_ONLY */
 }
+#endif
 /*---------------------------------------------------------------------------*/
 static void
 handle_dao_timer(void *ptr)

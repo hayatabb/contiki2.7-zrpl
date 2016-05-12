@@ -1420,7 +1420,6 @@ uip_process(uint8_t flag)
 #if UIP_CONF_IPV6_RPL  
   case ICMP6_RPL:
     uip_rpl_input();
-	printf("new_rpl_input\n");
     break;
 #endif /* UIP_CONF_IPV6_RPL */
     case ICMP6_ECHO_REQUEST:
