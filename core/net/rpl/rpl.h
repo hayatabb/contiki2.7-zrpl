@@ -103,7 +103,7 @@ typedef uint16_t rpl_ocp_t;
 #define MAX_DIO_TIMER_INTERVAL           30000 // DIO_timer interval increases gradually, s 
 #define REQUEST_TIME_MAX                7   // maxmal request time
 
-#define ROUTER
+#define EDGE_ROUTER
 
 struct rpl_metric_object_energy {
   uint8_t flags;

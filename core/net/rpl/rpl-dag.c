@@ -81,7 +81,33 @@ rpl_instance_t *default_instance;
 void
 rpl_dag_init(void)
 {
+<<<<<<< HEAD
   //nbr_table_register(rpl_parents, (nbr_table_callback *)rpl_remove_parent);   //set callback function for this table
+=======
+  nbr_table_register(rpl_parents, (nbr_table_callback *)rpl_remove_parent);   //set callback function for this table
+}
+/*---------------------------------------------------------------------------*/
+rpl_rank_t
+rpl_get_parent_rank(uip_lladdr_t *addr)
+{
+  rpl_parent_t *p = nbr_table_get_from_lladdr(rpl_parents, (rimeaddr_t *)addr);    //get item based on addr
+  if(p != NULL) {
+    return p->rank;
+  } else {
+    return 0;
+  }
+}
+/*---------------------------------------------------------------------------*/
+uint16_t
+rpl_get_parent_link_metric(uip_lladdr_t *addr)
+{
+  rpl_parent_t *p = nbr_table_get_from_lladdr(rpl_parents, (rimeaddr_t *)addr);
+  if(p != NULL) {
+    return p->link_metric;
+  } else {
+    return 0;
+  }
+>>>>>>> origin/master
 }
 /*---------------------------------------------------------------------------*/
 uip_ipaddr_t *
