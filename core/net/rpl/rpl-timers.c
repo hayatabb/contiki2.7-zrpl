@@ -96,6 +96,9 @@ rpl_reset_periodic_timer(void)        // Zuo
 {
   clock_time_t waiting;             // random waiting before send out first DIS
   waiting =  random_rand() % 30;   //waiting for 1-60 s randomly	
+#ifdef LEAF
+  waiting +=180;                      // leaves wait 180s until routers finished initializing
+#endif
   ctimer_set(&periodic_dis_timer, waiting*CLOCK_SECOND, handle_periodic_timer, NULL);
 }
 /*---------------------------------------------------------------------------*/

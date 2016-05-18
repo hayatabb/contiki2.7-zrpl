@@ -41,7 +41,7 @@
 
 #define DEBUG DEBUG_PRINT
 #include "net/uip-debug.h"
-#define EDGE_ROUTER
+
 
 #define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
 

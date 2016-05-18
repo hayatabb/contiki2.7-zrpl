@@ -50,8 +50,9 @@
 #include "net/rime/rimeaddr.h"
 #include "net/packetbuf.h"
 #include "net/uip-ds6-nbr.h"
+#include "net/rpl/rpl.h"
 
-#define DEBUG DEBUG_NONE
+#define DEBUG 1//DEBUG_NONE Zuo
 #include "net/uip-debug.h"
 
 #ifdef UIP_CONF_DS6_NEIGHBOR_STATE_CHANGED
@@ -69,19 +70,27 @@ void LINK_NEIGHBOR_CALLBACK(const rimeaddr_t *addr, int status, int numtx);
 #endif /* UIP_CONF_DS6_LINK_NEIGHBOR_CALLBACK */
 
 NBR_TABLE_GLOBAL(uip_ds6_nbr_t, ds6_neighbors);
+#ifdef ROUTER
+NBR_TABLE_GLOBAL(uip_ds6_nbr_t, outsubnet_table);
+NBR_TABLE_GLOBAL(uip_ds6_nbr_t, insubnet_table);
+NBR_TABLE_GLOBAL(uip_ds6_nbr_t, leaf_table);
+#endif
 
 /*---------------------------------------------------------------------------*/
 void
 uip_ds6_neighbors_init(void)
 {
   nbr_table_register(ds6_neighbors, (nbr_table_callback *)uip_ds6_nbr_rm);
+  nbr_table_register(ds6_neighbors, (nbr_table_callback *)uip_ds6_nbr_rm);
+  nbr_table_register(ds6_neighbors, (nbr_table_callback *)uip_ds6_nbr_rm);
+  nbr_table_register(ds6_neighbors, (nbr_table_callback *)uip_ds6_nbr_rm);
 }
 /*---------------------------------------------------------------------------*/
 uip_ds6_nbr_t *
-uip_ds6_nbr_add(uip_ipaddr_t *ipaddr, uip_lladdr_t *lladdr,
+uip_ds6_nbr_add(nbr_table_t *nbr_table, uip_ipaddr_t *ipaddr, uip_lladdr_t *lladdr,
                 uint8_t isrouter, uint8_t state)
 {
-  uip_ds6_nbr_t *nbr = nbr_table_add_lladdr(ds6_neighbors, (rimeaddr_t*)lladdr);
+  uip_ds6_nbr_t *nbr = nbr_table_add_lladdr(nbr_table, (rimeaddr_t*)lladdr);
   if(nbr) {
     uip_ipaddr_copy(&nbr->ipaddr, ipaddr);
     nbr->isrouter = isrouter;
@@ -112,14 +121,14 @@ uip_ds6_nbr_add(uip_ipaddr_t *ipaddr, uip_lladdr_t *lladdr,
 
 /*---------------------------------------------------------------------------*/
 void
-uip_ds6_nbr_rm(uip_ds6_nbr_t *nbr)
+uip_ds6_nbr_rm(nbr_table_t *nbr_table, uip_ds6_nbr_t *nbr)
 {
   if(nbr != NULL) {
 #if UIP_CONF_IPV6_QUEUE_PKT
     uip_packetqueue_free(&nbr->packethandle);
 #endif /* UIP_CONF_IPV6_QUEUE_PKT */
     NEIGHBOR_STATE_CHANGED(nbr);
-    nbr_table_remove(ds6_neighbors, nbr);
+    nbr_table_remove(nbr_table, nbr);
   }
   return;
 }
@@ -133,61 +142,61 @@ uip_ds6_nbr_get_ipaddr(uip_ds6_nbr_t *nbr)
 
 /*---------------------------------------------------------------------------*/
 uip_lladdr_t *
-uip_ds6_nbr_get_ll(uip_ds6_nbr_t *nbr)
+uip_ds6_nbr_get_ll(nbr_table_t *nbr_table, uip_ds6_nbr_t *nbr)
 {
-  return (uip_lladdr_t *)nbr_table_get_lladdr(ds6_neighbors, nbr);
+  return (uip_lladdr_t *)nbr_table_get_lladdr(nbr_table, nbr);
 }
 /*---------------------------------------------------------------------------*/
 int
-uip_ds6_nbr_num(void)
+uip_ds6_nbr_num(nbr_table_t *nbr_table)
 {
   uip_ds6_nbr_t *nbr;
   int num;
 
   num = 0;
-  for(nbr = nbr_table_head(ds6_neighbors);
+  for(nbr = nbr_table_head(nbr_table);
       nbr != NULL;
-      nbr = nbr_table_next(ds6_neighbors, nbr)) {
+      nbr = nbr_table_next(nbr_table, nbr)) {
     num++;
   }
   return num;
 }
 /*---------------------------------------------------------------------------*/
 uip_ds6_nbr_t *
-uip_ds6_nbr_lookup(uip_ipaddr_t *ipaddr)
+uip_ds6_nbr_lookup(nbr_table_t *nbr_table, uip_ipaddr_t *ipaddr)
 {
-  uip_ds6_nbr_t *nbr = nbr_table_head(ds6_neighbors);
+  uip_ds6_nbr_t *nbr = nbr_table_head(nbr_table);
   if(ipaddr != NULL) {
     while(nbr != NULL) {
       if(uip_ipaddr_cmp(&nbr->ipaddr, ipaddr)) {
         return nbr;
       }
-      nbr = nbr_table_next(ds6_neighbors, nbr);
+      nbr = nbr_table_next(nbr_table, nbr);
     }
   }
   return NULL;
 }
 /*---------------------------------------------------------------------------*/
 uip_ds6_nbr_t *
-uip_ds6_nbr_ll_lookup(uip_lladdr_t *lladdr)
+uip_ds6_nbr_ll_lookup(nbr_table_t *nbr_table, uip_lladdr_t *lladdr)
 {
-  return nbr_table_get_from_lladdr(ds6_neighbors, (rimeaddr_t*)lladdr);
+  return nbr_table_get_from_lladdr(nbr_table, (rimeaddr_t*)lladdr);
 }
 
 /*---------------------------------------------------------------------------*/
 uip_ipaddr_t *
-uip_ds6_nbr_ipaddr_from_lladdr(uip_lladdr_t *lladdr)
+uip_ds6_nbr_ipaddr_from_lladdr(nbr_table_t *nbr_table, uip_lladdr_t *lladdr)
 {
-  uip_ds6_nbr_t *nbr = uip_ds6_nbr_ll_lookup(lladdr);
+  uip_ds6_nbr_t *nbr = uip_ds6_nbr_ll_lookup(nbr_table, lladdr);
   return nbr ? &nbr->ipaddr : NULL;
 }
 
 /*---------------------------------------------------------------------------*/
 uip_lladdr_t *
-uip_ds6_nbr_lladdr_from_ipaddr(uip_ipaddr_t *ipaddr)
+uip_ds6_nbr_lladdr_from_ipaddr(nbr_table_t *nbr_table, uip_ipaddr_t *ipaddr)
 {
-  uip_ds6_nbr_t *nbr = uip_ds6_nbr_lookup(ipaddr);
-  return nbr ? uip_ds6_nbr_get_ll(nbr) : NULL;
+  uip_ds6_nbr_t *nbr = uip_ds6_nbr_lookup(nbr_table, ipaddr);
+  return nbr ? uip_ds6_nbr_get_ll(nbr_table, nbr) : NULL;
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -219,10 +228,10 @@ uip_ds6_link_neighbor_callback(int status, int numtx)
 }
 /*---------------------------------------------------------------------------*/
 void
-uip_ds6_neighbor_periodic(void)
+uip_ds6_neighbor_periodic(nbr_table_t *nbr_table)
 {
   /* Periodic processing on neighbors */
-  uip_ds6_nbr_t *nbr = nbr_table_head(ds6_neighbors);
+  uip_ds6_nbr_t *nbr = nbr_table_head(nbr_table);
   while(nbr != NULL) {
     switch(nbr->state) {
     case NBR_REACHABLE:
@@ -236,7 +245,7 @@ uip_ds6_neighbor_periodic(void)
 #if UIP_ND6_SEND_NA
     case NBR_INCOMPLETE:
       if(nbr->nscount >= UIP_ND6_MAX_MULTICAST_SOLICIT) {
-        uip_ds6_nbr_rm(nbr);
+        uip_ds6_nbr_rm(nbr_table,nbr);
       } else if(stimer_expired(&nbr->sendns) && (uip_len == 0)) {
         nbr->nscount++;
         PRINTF("NBR_INCOMPLETE: NS %u\n", nbr->nscount);
@@ -261,7 +270,7 @@ uip_ds6_neighbor_periodic(void)
             uip_ds6_defrt_rm(locdefrt);
           }
         }
-        uip_ds6_nbr_rm(nbr);
+        uip_ds6_nbr_rm(nbr_table,nbr);
       } else if(stimer_expired(&nbr->sendns) && (uip_len == 0)) {
         nbr->nscount++;
         PRINTF("PROBE: NS %u\n", nbr->nscount);
@@ -273,15 +282,15 @@ uip_ds6_neighbor_periodic(void)
     default:
       break;
     }
-    nbr = nbr_table_next(ds6_neighbors, nbr);
+    nbr = nbr_table_next(nbr_table, nbr);
   }
 }
 
 /*---------------------------------------------------------------------------*/
 uip_ds6_nbr_t *
-uip_ds6_get_least_lifetime_neighbor(void)
+uip_ds6_get_least_lifetime_neighbor(nbr_table_t *nbr_table)
 {
-  uip_ds6_nbr_t *nbr = nbr_table_head(ds6_neighbors);
+  uip_ds6_nbr_t *nbr = nbr_table_head(nbr_table);
   uip_ds6_nbr_t *nbr_expiring = NULL;
   while(nbr != NULL) {
     if(nbr_expiring != NULL) {
@@ -292,7 +301,8 @@ uip_ds6_get_least_lifetime_neighbor(void)
     } else {
       nbr_expiring = nbr;
     }
-    nbr = nbr_table_next(ds6_neighbors, nbr);
+    nbr = nbr_table_next(nbr_table, nbr);
   }
   return nbr_expiring;
 }
+/*---------------------------------------------------------------------------*/

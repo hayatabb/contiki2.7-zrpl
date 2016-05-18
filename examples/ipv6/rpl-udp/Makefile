@@ -1,4 +1,4 @@
-all: udp-client udp-server
+all: edge_router router leaf
 APPS=servreg-hack
 CONTIKI= ../../..
 

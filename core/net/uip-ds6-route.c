@@ -30,6 +30,7 @@
  *
  */
 #include "net/uip-ds6.h"
+#include "net/uip-ds6-nbr.h"
 #include "net/uip.h"
 
 #include "lib/list.h"
@@ -165,7 +166,7 @@ uip_ipaddr_t *
 uip_ds6_route_nexthop(uip_ds6_route_t *route)
 {
   if(route != NULL) {
-    return uip_ds6_nbr_ipaddr_from_lladdr(uip_ds6_route_nexthop_lladdr(route));
+    return uip_ds6_nbr_ipaddr_from_lladdr(ds6_neighbors, uip_ds6_route_nexthop_lladdr(route));
   } else {
     return NULL;
   }
@@ -261,7 +262,7 @@ uip_ds6_route_add(uip_ipaddr_t *ipaddr, uint8_t length,
 #endif /* DEBUG != DEBUG_NONE */
 
   /* Get link-layer address of next hop, make sure it is in neighbor table */
-  uip_lladdr_t *nexthop_lladdr = uip_ds6_nbr_lladdr_from_ipaddr(nexthop);
+  uip_lladdr_t *nexthop_lladdr = uip_ds6_nbr_lladdr_from_ipaddr(ds6_neighbors, nexthop);
   if(nexthop_lladdr == NULL) {
     PRINTF("uip_ds6_route_add: neighbor link-local address unknown ");
     PRINT6ADDR(ipaddr);
@@ -443,7 +444,7 @@ uip_ds6_route_rm_by_nexthop(uip_ipaddr_t *nexthop)
   uip_lladdr_t *nexthop_lladdr;
   struct uip_ds6_route_neighbor_routes *routes;
 
-  nexthop_lladdr = uip_ds6_nbr_lladdr_from_ipaddr(nexthop);
+  nexthop_lladdr = uip_ds6_nbr_lladdr_from_ipaddr(ds6_neighbors, nexthop);
   routes = nbr_table_get_from_lladdr(nbr_routes,
                                      (rimeaddr_t *)nexthop_lladdr);
   rm_routelist(routes);
@@ -556,7 +557,7 @@ uip_ds6_defrt_choose(void)
     PRINTF("Defrt, IP address ");
     PRINT6ADDR(&d->ipaddr);
     PRINTF("\n");
-    bestnbr = uip_ds6_nbr_lookup(&d->ipaddr);
+    bestnbr = uip_ds6_nbr_lookup(ds6_neighbors, &d->ipaddr);
     if(bestnbr != NULL && bestnbr->state != NBR_INCOMPLETE) {
       PRINTF("Defrt found, IP address ");
       PRINT6ADDR(&d->ipaddr);

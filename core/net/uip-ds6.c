@@ -50,7 +50,7 @@
 
 #if UIP_CONF_IPV6
 
-#define DEBUG DEBUG_NONE
+#define DEBUG 1//DEBUG_NONE Zuo
 #include "net/uip-debug.h"
 
 struct etimer uip_ds6_timer_periodic;                           /** \brief Timer for maintenance of data structures */
@@ -184,8 +184,12 @@ uip_ds6_periodic(void)
   }
 #endif /* !UIP_CONF_ROUTER */
 
-  uip_ds6_neighbor_periodic();
-
+  uip_ds6_neighbor_periodic(ds6_neighbors);
+#ifdef ROUTER
+  uip_ds6_neighbor_periodic(insubnet_table); 
+  uip_ds6_neighbor_periodic(outsubnet_table);
+  uip_ds6_neighbor_periodic(leaf_table);
+#endif
 #if UIP_CONF_ROUTER & UIP_ND6_SEND_RA
   /* Periodic RA sending */
   if(stimer_expired(&uip_ds6_timer_ra) && (uip_len == 0)) {
@@ -401,19 +405,29 @@ uip_ds6_get_link_local(int8_t state)
  * state = -1 => any address is ok. Otherwise state = desired state of addr.
  * (TENTATIVE, PREFERRED, DEPRECATED)
  */
-uip_ds6_addr_t *
-uip_ds6_get_global(int8_t state)
+void 
+uip_ds6_add_prefix(uint16_t prefix)
 {
   for(locaddr = uip_ds6_if.addr_list;
       locaddr < uip_ds6_if.addr_list + UIP_DS6_ADDR_NB; locaddr++) {
-    if(locaddr->isused && (state == -1 || locaddr->state == state)
-       && !(uip_is_addr_link_local(&locaddr->ipaddr))) {
-      return locaddr;
+  if((locaddr!= NULL)&&locaddr->isused){
+       //&& !(uip_is_addr_link_local(&locaddr->ipaddr))) {
+      locaddr->ipaddr.u16[3] = locaddr->ipaddr.u16[3] + prefix;
     }
   }
-  return NULL;
 }
-
+/*---------------------------------------------------------------------------*/
+void 
+uip_ds6_return_prefix(void)
+{
+	for(locaddr = uip_ds6_if.addr_list;
+			locaddr < uip_ds6_if.addr_list + UIP_DS6_ADDR_NB; locaddr++) {
+		if((locaddr!= NULL)&&locaddr->isused){
+			//&& !(uip_is_addr_link_local(&locaddr->ipaddr))) {
+			locaddr->ipaddr.u16[3] = 0;
+		}
+	}
+}
 /*---------------------------------------------------------------------------*/
 uip_ds6_maddr_t *
 uip_ds6_maddr_add(const uip_ipaddr_t *ipaddr)

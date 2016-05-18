@@ -48,7 +48,7 @@
 
 #define DEBUG DEBUG_NONE
 #include "net/uip-debug.h"
-#define ROUTER
+
 
 #ifndef PERIOD
 #define PERIOD 60

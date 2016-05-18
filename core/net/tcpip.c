@@ -45,6 +45,7 @@
 #if UIP_CONF_IPV6
 #include "net/uip-nd6.h"
 #include "net/uip-ds6.h"
+#include "net/uip-ds6-nbr.h"
 #include "net/rpl/rpl.h"
 #endif
 
@@ -649,10 +650,10 @@ tcpip_ipv6_output(void)
       return;
     }
 #endif /* UIP_CONF_IPV6_RPL */
-    nbr = uip_ds6_nbr_lookup(nexthop);
+    nbr = uip_ds6_nbr_lookup(ds6_neighbors, nexthop);
     if(nbr == NULL) {
 #if UIP_ND6_SEND_NA
-      if((nbr = uip_ds6_nbr_add(nexthop, NULL, 0, NBR_INCOMPLETE)) == NULL) {
+      if((nbr = uip_ds6_nbr_add(ds6_neighbors,nexthop, NULL, 0, NBR_INCOMPLETE)) == NULL) {
         uip_len = 0;
         return;
       } else {
@@ -704,7 +705,7 @@ tcpip_ipv6_output(void)
       }
 #endif /* UIP_ND6_SEND_NA */
 
-      tcpip_output(uip_ds6_nbr_get_ll(nbr));
+      tcpip_output(uip_ds6_nbr_get_ll(ds6_neighbors,nbr));
 
 #if UIP_CONF_IPV6_QUEUE_PKT
       /*
@@ -717,7 +718,7 @@ tcpip_ipv6_output(void)
         uip_len = uip_packetqueue_buflen(&nbr->packethandle);
         memcpy(UIP_IP_BUF, uip_packetqueue_buf(&nbr->packethandle), uip_len);
         uip_packetqueue_free(&nbr->packethandle);
-        tcpip_output(uip_ds6_nbr_get_ll(nbr));
+        tcpip_output(uip_ds6_nbr_get_ll(ds6_neighbors, nbr));
       }
 #endif /*UIP_CONF_IPV6_QUEUE_PKT*/
 

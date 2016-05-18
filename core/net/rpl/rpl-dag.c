@@ -46,6 +46,7 @@
 #include "net/uip.h"
 #include "net/uip-nd6.h"
 #include "net/nbr-table.h"
+#include "net/uip-ds6-nbr.h"
 #include "lib/list.h"
 #include "lib/memb.h"
 #include "sys/ctimer.h"
@@ -88,7 +89,7 @@ uip_ipaddr_t *
 rpl_get_parent_ipaddr(rpl_parent_t *p)
 {
   rimeaddr_t *lladdr = nbr_table_get_lladdr(rpl_parents, p);
-  return uip_ds6_nbr_ipaddr_from_lladdr((uip_lladdr_t *)lladdr);
+  return uip_ds6_nbr_ipaddr_from_lladdr(ds6_neighbors, (uip_lladdr_t *)lladdr);
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -403,7 +404,7 @@ rpl_add_parent(rpl_dag_t *dag, rpl_dio_t *dio, uip_ipaddr_t *addr)
   rpl_parent_t *p = NULL;
   /* Is the parent known by ds6? Drop this request if not.
    * Typically, the parent is added upon receiving a DIO. */
-  uip_lladdr_t *lladdr = uip_ds6_nbr_lladdr_from_ipaddr(addr);
+  uip_lladdr_t *lladdr = uip_ds6_nbr_lladdr_from_ipaddr(ds6_neighbors, addr);
 
   PRINTF("RPL: rpl_add_parent lladdr %p\n", lladdr);
   if(lladdr != NULL) {
@@ -423,8 +424,8 @@ rpl_add_parent(rpl_dag_t *dag, rpl_dio_t *dio, uip_ipaddr_t *addr)
 static rpl_parent_t *
 find_parent_any_dag_any_instance(uip_ipaddr_t *addr)
 {
-  uip_ds6_nbr_t *ds6_nbr = uip_ds6_nbr_lookup(addr);
-  uip_lladdr_t *lladdr = uip_ds6_nbr_get_ll(ds6_nbr);
+  uip_ds6_nbr_t *ds6_nbr = uip_ds6_nbr_lookup(ds6_neighbors,addr);
+  uip_lladdr_t *lladdr = uip_ds6_nbr_get_ll(ds6_neighbors, ds6_nbr);
   return nbr_table_get_from_lladdr(rpl_parents, (rimeaddr_t *)lladdr);
 }
 /*---------------------------------------------------------------------------*/

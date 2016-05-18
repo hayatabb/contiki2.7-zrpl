@@ -351,11 +351,18 @@ cc2420_transmit(unsigned short payload_len)
   GET_LOCK();
 
   txpower = 0;
-//#ifdef EDGE_ROUTER                                              //Zuo
+#ifdef EDGE_ROUTER                                              //Zuo
   set_txpower(CC2420_TXPOWER_MAX );
-//#else
-  //set_txpower(10);
-//#endif
+#endif
+#ifdef ROUTER
+  if (!has_prefix) 
+	  set_txpower(CC2420_TXPOWER_MAX );
+      else 
+		  set_txpower(10);
+#endif
+#ifdef LEAF
+  set_txpower(6);
+#endif
   if(packetbuf_attr(PACKETBUF_ATTR_RADIO_TXPOWER) > 0) {
     /* Remember the current transmission power */
     txpower = cc2420_get_txpower();

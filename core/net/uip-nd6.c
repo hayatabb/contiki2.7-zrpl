@@ -72,6 +72,7 @@
 #include "net/uip-icmp6.h"
 #include "net/uip-nd6.h"
 #include "net/uip-ds6.h"
+#include "net/uip-ds6-nbr.h"
 #include "lib/random.h"
 
 #if UIP_CONF_IPV6
@@ -185,13 +186,13 @@ uip_nd6_ns_input(void)
         goto discard;
       } else {
 #endif /*UIP_CONF_IPV6_CHECKS */
-        nbr = uip_ds6_nbr_lookup(&UIP_IP_BUF->srcipaddr);
+        nbr = uip_ds6_nbr_lookup(ds6_neighbors,&UIP_IP_BUF->srcipaddr);
         if(nbr == NULL) {
-          uip_ds6_nbr_add(&UIP_IP_BUF->srcipaddr,
+          uip_ds6_nbr_add(ds6_neighbors, &UIP_IP_BUF->srcipaddr,
 			  (uip_lladdr_t *)&nd6_opt_llao[UIP_ND6_OPT_DATA_OFFSET],
 			  0, NBR_STALE);
         } else {
-          uip_lladdr_t *lladdr = uip_ds6_nbr_get_ll(nbr);
+          uip_lladdr_t *lladdr = uip_ds6_nbr_get_ll(ds6_neighbors, nbr);
           if(memcmp(&nd6_opt_llao[UIP_ND6_OPT_DATA_OFFSET],
 		    lladdr, UIP_LLADDR_LEN) != 0) {
             memcpy(lladdr, &nd6_opt_llao[UIP_ND6_OPT_DATA_OFFSET],
@@ -462,8 +463,8 @@ uip_nd6_na_input(void)
     goto discard;
   } else {
     uip_lladdr_t *lladdr;
-    nbr = uip_ds6_nbr_lookup(&UIP_ND6_NA_BUF->tgtipaddr);
-    lladdr = uip_ds6_nbr_get_ll(nbr);
+    nbr = uip_ds6_nbr_lookup(ds6_neighbors,&UIP_ND6_NA_BUF->tgtipaddr);
+    lladdr = uip_ds6_nbr_get_ll(ds6_neighbors, nbr);
     if(nbr == NULL) {
       goto discard;
     }
@@ -602,17 +603,17 @@ uip_nd6_rs_input(void)
       goto discard;
     } else {
 #endif /*UIP_CONF_IPV6_CHECKS */
-      if((nbr = uip_ds6_nbr_lookup(&UIP_IP_BUF->srcipaddr)) == NULL) {
+      if((nbr = uip_ds6_nbr_lookup(ds6_neighbors,&UIP_IP_BUF->srcipaddr)) == NULL) {
         /* we need to add the neighbor */
-        uip_ds6_nbr_add(&UIP_IP_BUF->srcipaddr,
+        uip_ds6_nbr_add(ds6_neighbors,&UIP_IP_BUF->srcipaddr,
                         (uip_lladdr_t *)&nd6_opt_llao[UIP_ND6_OPT_DATA_OFFSET], 0, NBR_STALE);
       } else {
         /* If LL address changed, set neighbor state to stale */
         if(memcmp(&nd6_opt_llao[UIP_ND6_OPT_DATA_OFFSET],
-            uip_ds6_nbr_get_ll(nbr), UIP_LLADDR_LEN) != 0) {
+            uip_ds6_nbr_get_ll(ds6_neighbors, nbr), UIP_LLADDR_LEN) != 0) {
           uip_ds6_nbr_t nbr_data = *nbr;
-          uip_ds6_nbr_rm(nbr);
-          nbr = uip_ds6_nbr_add(&UIP_IP_BUF->srcipaddr,
+          uip_ds6_nbr_rm(ds6_neighbors, nbr);
+          nbr = uip_ds6_nbr_add(ds6_neighbors,&UIP_IP_BUF->srcipaddr,
                                 (uip_lladdr_t *)&nd6_opt_llao[UIP_ND6_OPT_DATA_OFFSET], 0, NBR_STALE);
           nbr->reachable = nbr_data.reachable;
           nbr->sendns = nbr_data.sendns;
@@ -810,16 +811,16 @@ uip_nd6_ra_input(void)
     case UIP_ND6_OPT_SLLAO:
       PRINTF("Processing SLLAO option in RA\n");
       nd6_opt_llao = (uint8_t *) UIP_ND6_OPT_HDR_BUF;
-      nbr = uip_ds6_nbr_lookup(&UIP_IP_BUF->srcipaddr);
+      nbr = uip_ds6_nbr_lookup(ds6_neighbors,&UIP_IP_BUF->srcipaddr);
       if(nbr == NULL) {
-        nbr = uip_ds6_nbr_add(&UIP_IP_BUF->srcipaddr,
+        nbr = uip_ds6_nbr_add(ds6_neighbors, &UIP_IP_BUF->srcipaddr,
                               (uip_lladdr_t *)&nd6_opt_llao[UIP_ND6_OPT_DATA_OFFSET],
 			      1, NBR_STALE);
       } else {
         if(nbr->state == NBR_INCOMPLETE) {
           nbr->state = NBR_STALE;
         }
-        uip_lladdr_t *lladdr = uip_ds6_nbr_get_ll(nbr);
+        uip_lladdr_t *lladdr = uip_ds6_nbr_get_ll(ds6_neighbors, nbr);
         if(memcmp(&nd6_opt_llao[UIP_ND6_OPT_DATA_OFFSET],
 		  lladdr, UIP_LLADDR_LEN) != 0) {
           memcpy(lladdr, &nd6_opt_llao[UIP_ND6_OPT_DATA_OFFSET],

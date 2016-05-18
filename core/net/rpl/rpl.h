@@ -93,9 +93,10 @@ typedef uint16_t rpl_ocp_t;
 #define RPL_SUPER_ROUTER                 2
 #define RPL_LEAF                         3
 
-#define SUBNET_MIN                       3   //min number of nodes in subnet in first division attempt
-#define SUBNET_MAX                       6   //max nunber of nodes in subnet in first devision attempt
+#define SUBNET_ROUTER_MIN                       3   //min number of nodes in subnet in first division attempt
+#define SUBNET_ROUTER_MAX                       6   //max nunber of nodes in subnet in first devision attempt
 #define SUBNET_RADIUS                    25  //area Manhattan radius of subnet
+#define SUBNET_LEAF_MAX                      // max number of leaves of one router 
 
 #define MAX_LEAF_NUMBER                  5   // max number of leaves of a route
 

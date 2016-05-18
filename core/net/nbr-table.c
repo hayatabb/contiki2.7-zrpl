@@ -33,7 +33,6 @@
  */
 
 #include "contiki.h"
-
 #include <stddef.h>
 #include <string.h>
 #include "lib/memb.h"

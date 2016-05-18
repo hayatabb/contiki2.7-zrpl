@@ -130,7 +130,7 @@
   <plugin>
     se.sics.cooja.plugins.SimControl
     <width>280</width>
-    <z>0</z>
+    <z>2</z>
     <height>160</height>
     <location_x>400</location_x>
     <location_y>0</location_y>
@@ -146,7 +146,7 @@
       <viewport>4.483002717664437 0.0 0.0 4.483002717664437 -26.34026420299184 -154.94089209011574</viewport>
     </plugin_config>
     <width>400</width>
-    <z>3</z>
+    <z>0</z>
     <height>400</height>
     <location_x>1</location_x>
     <location_y>1</location_y>
@@ -159,7 +159,7 @@
       <coloring />
     </plugin_config>
     <width>901</width>
-    <z>4</z>
+    <z>3</z>
     <height>240</height>
     <location_x>404</location_x>
     <location_y>166</location_y>
@@ -188,7 +188,7 @@
       <decorations>true</decorations>
     </plugin_config>
     <width>621</width>
-    <z>2</z>
+    <z>4</z>
     <height>160</height>
     <location_x>680</location_x>
     <location_y>5</location_y>
@@ -199,8 +199,8 @@
     <width>422</width>
     <z>1</z>
     <height>71</height>
-    <location_x>653</location_x>
-    <location_y>433</location_y>
+    <location_x>618</location_x>
+    <location_y>292</location_y>
   </plugin>
 </simconf>
 
