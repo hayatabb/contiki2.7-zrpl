@@ -52,7 +52,7 @@
 #include "net/uip-ds6-nbr.h"
 #include "net/rpl/rpl.h"
 
-#define DEBUG 1//DEBUG_NONE Zuo
+#define DEBUG 1//DEBUG_NONE 
 #include "net/uip-debug.h"
 
 #ifdef UIP_CONF_DS6_NEIGHBOR_STATE_CHANGED
@@ -75,15 +75,24 @@ NBR_TABLE_GLOBAL(uip_ds6_nbr_t, outsubnet_table);
 NBR_TABLE_GLOBAL(uip_ds6_nbr_t, insubnet_table);
 NBR_TABLE_GLOBAL(uip_ds6_nbr_t, leaf_table);
 #endif
+#ifdef LEAF
+NBR_TABLE_GLOBAL(uip_ds6_nbr_t, agent_table);                // agency router table for leaf. At present only one agency is selected
+#endif 
 
 /*---------------------------------------------------------------------------*/
 void
 uip_ds6_neighbors_init(void)
 {
   nbr_table_register(ds6_neighbors, (nbr_table_callback *)uip_ds6_nbr_rm);
-  nbr_table_register(ds6_neighbors, (nbr_table_callback *)uip_ds6_nbr_rm);
-  nbr_table_register(ds6_neighbors, (nbr_table_callback *)uip_ds6_nbr_rm);
-  nbr_table_register(ds6_neighbors, (nbr_table_callback *)uip_ds6_nbr_rm);
+#ifdef ROUTER
+  nbr_table_register(outsubnet_table, (nbr_table_callback *)uip_ds6_nbr_rm);
+  nbr_table_register(insubnet_table, (nbr_table_callback *)uip_ds6_nbr_rm);
+  nbr_table_register(leaf_table, (nbr_table_callback *)uip_ds6_nbr_rm);
+#endif   /*ROUTER*/
+#ifdef LEAF
+    nbr_table_register(agent_table, (nbr_table_callback *)uip_ds6_nbr_rm);
+#endif   /*LEAF*/
+  
 }
 /*---------------------------------------------------------------------------*/
 uip_ds6_nbr_t *
@@ -102,11 +111,13 @@ uip_ds6_nbr_add(nbr_table_t *nbr_table, uip_ipaddr_t *ipaddr, uip_lladdr_t *llad
     stimer_set(&nbr->reachable, 0);
     stimer_set(&nbr->sendns, 0);
     nbr->nscount = 0;
+	/*
     PRINTF("Adding neighbor with ip addr ");
     PRINT6ADDR(ipaddr);
     PRINTF(" link addr ");
     PRINTLLADDR(lladdr);
     PRINTF(" state %u\n", state);
+	*/
     NEIGHBOR_STATE_CHANGED(nbr);
     return nbr;
   } else {
@@ -306,3 +317,112 @@ uip_ds6_get_least_lifetime_neighbor(nbr_table_t *nbr_table)
   return nbr_expiring;
 }
 /*---------------------------------------------------------------------------*/
+#ifdef ROUTER
+int
+add_to_subnet_route_table(uip_ipaddr_t *ipaddr,uip_lladdr_t *lladdr)
+{
+	uip_ds6_nbr_t *nbr ;
+	if (ipaddr->u16[3] ==  my_info->my_prefix) {                         // router in my subnet
+		if((nbr = uip_ds6_nbr_lookup(insubnet_table, ipaddr)) == NULL)       
+		if((nbr = uip_ds6_nbr_add(insubnet_table,ipaddr, lladdr,
+								  0, NBR_REACHABLE)) != NULL){
+			PRINTF("I add router ");
+			PRINT6ADDR(ipaddr);
+			PRINTF(" num %d to my insubnet table\n",ipaddr->u8[15]);
+			return 1;
+	        }    
+	}                
+	else {                                                                                           // router out of my subnet
+	nbr = nbr_table_head(outsubnet_table);
+		while(nbr != NULL) {
+			if(nbr->ipaddr.u16[3]==ipaddr->u16[3]) 
+				return 0;
+			nbr = nbr_table_next(outsubnet_table, nbr);
+		}
+	if((nbr = uip_ds6_nbr_add(outsubnet_table,ipaddr, lladdr,
+							  0, NBR_REACHABLE)) != NULL)
+							  {
+							  PRINTF("I add router ");
+			                  PRINT6ADDR(ipaddr);
+			                  PRINTF(" num %d to my outsubnet table\n",ipaddr->u8[15]);
+		                      return 1;
+		}
+	}
+	    return 0;
+}
+/*---------------------------------------------------------------------------*/
+int
+add_to_leaf_table(uip_ipaddr_t *ipaddr, uip_lladdr_t *lladdr)
+{
+	uip_ds6_nbr_t *nbr = nbr_table_head(leaf_table);
+	if((nbr = uip_ds6_nbr_add(leaf_table,ipaddr, lladdr,
+							  0, NBR_REACHABLE)) != NULL)
+	{
+		PRINTF("I add leaf");
+		PRINT6ADDR(ipaddr);
+		PRINTF(" num %d to my leaf table\n",ipaddr->u8[15]);
+		return 1;
+	}
+	return 0;
+}
+/*---------------------------------------------------------------------------*/
+/*search for next hop*/
+uip_ipaddr_t *
+next_route(uip_ipaddr_t *ipaddr)
+{
+	if (ipaddr->u16[3] == my_info->my_prefix){
+		if (ipaddr->u16[2] == my_info->my_address.u16[7]) {  // this is my leaf
+			ipaddr->u16[2] = 0;                                                       
+			return ipaddr;
+		}
+		else {              // this is for leaf of other router
+			uip_ds6_nbr_t *nbr = nbr_table_head(insubnet_table);
+			while(nbr != NULL) {
+				if (nbr->ipaddr.u16[7] == ipaddr->u16[2]) 
+					return &nbr->ipaddr;
+				nbr = nbr_table_next(outsubnet_table, nbr);
+			}		
+			if (my_info->my_goal == RPL_SUPER_ROUTER)
+				return NULL;
+			else 
+			return &super_router_addr;        // do not find destination router, send it to super router
+		}
+	}
+	else {              // for destination out of subnet
+		uip_ds6_nbr_t *nbr = nbr_table_head(outsubnet_table);
+		uip_ipaddr_t *best_dest = NULL;
+		uint16_t best_distance = 0;
+		uint16_t prefix_distance = 0;
+			while(nbr != NULL) {
+				prefix_distance= abs(ipaddr->u8[6]-nbr->ipaddr.u8[6]) + abs(ipaddr->u8[7]-nbr->ipaddr.u8[7]);
+				if (prefix_distance > best_distance) {  // find a farther subnet
+					best_distance = prefix_distance;
+				    uip_ipaddr_copy(best_dest, &nbr->ipaddr);
+				}
+				nbr = nbr_table_next(outsubnet_table, nbr);
+			}				
+		return best_dest;
+	}
+}
+#endif /*ROUTER*/
+/*---------------------------------------------------------------------------*/
+#ifdef LEAF
+int add_to_agent_table(uip_ipaddr_t *ipaddr, uip_lladdr_t *lladdr)
+{
+	uip_ds6_nbr_t *nbr = nbr_table_head(agent_table);
+	if((nbr = uip_ds6_nbr_add(agent_table,ipaddr, lladdr,
+							  0, NBR_REACHABLE)) != NULL)
+		return 1;
+	return 0;
+}
+/*---------------------------------------------------------------------------*/
+uip_ipaddr_t * 
+next_route(uip_ipaddr_t * ipaddr)
+{
+	uip_ds6_nbr_t *nbr = nbr_table_head(agent_table);
+	if (nbr == NULL) 
+		rpl_reset_dis_periodic_timer();  // no agent available, try to link one firstly    
+	else return &nbr->ipaddr;
+	return NULL;
+}
+#endif /*LEAF*/

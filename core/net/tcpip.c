@@ -567,89 +567,24 @@ tcpip_ipv6_output(void)
   if(!uip_is_addr_mcast(&UIP_IP_BUF->destipaddr)) {
     /* Next hop determination */
     nbr = NULL;
-
-    /* We first check if the destination address is on our immediate
-       link. If so, we simply use the destination address as our
-       nexthop address. */
-    if(uip_ds6_is_addr_onlink(&UIP_IP_BUF->destipaddr)){
-      nexthop = &UIP_IP_BUF->destipaddr;
-    } else {
-      uip_ds6_route_t *route;
-      /* Check if we have a route to the destination address. */
-      route = uip_ds6_route_lookup(&UIP_IP_BUF->destipaddr);
-
-      /* No route was found - we send to the default route instead. */
-      if(route == NULL) {
-        PRINTF("tcpip_ipv6_output: no route found, using default route\n");
-        nexthop = uip_ds6_defrt_choose();
-        if(nexthop == NULL) {
-#ifdef UIP_FALLBACK_INTERFACE
-	  PRINTF("FALLBACK: removing ext hdrs & setting proto %d %d\n", 
-		 uip_ext_len, *((uint8_t *)UIP_IP_BUF + 40));
-	  if(uip_ext_len > 0) {
-	    extern void remove_ext_hdr(void);
-	    uint8_t proto = *((uint8_t *)UIP_IP_BUF + 40);
-	    remove_ext_hdr();
-	    /* This should be copied from the ext header... */
-	    UIP_IP_BUF->proto = proto;
-	  }
-	  UIP_FALLBACK_INTERFACE.output();
-#else
-          PRINTF("tcpip_ipv6_output: Destination off-link but no route\n");
-#endif /* !UIP_FALLBACK_INTERFACE */
-          uip_len = 0;
-          return;
-        }
-
-      } else {
-        /* A route was found, so we look up the nexthop neighbor for
-           the route. */
-        nexthop = uip_ds6_route_nexthop(route);
-
-        /* If the nexthop is dead, for example because the neighbor
-           never responded to link-layer acks, we drop its route. */
-        if(nexthop == NULL) {
-#if UIP_CONF_IPV6_RPL
-          rpl_dag_t *dag;
-          rpl_instance_t *instance;
-
-          dag = (rpl_dag_t *)route->state.dag;
-          if(dag != NULL) {
-            instance = dag->instance;
-
-            rpl_repair_root(instance->instance_id);
-          } 
-#endif /* UIP_CONF_RPL */
-          uip_ds6_route_rm(route);
-
-          /* We don't have a nexthop to send the packet to, so we drop
-             it. */
-          return;
-        }
-      }
-#if TCPIP_CONF_ANNOTATE_TRANSMISSIONS
-      if(nexthop != NULL) {
-        static uint8_t annotate_last;
-        static uint8_t annotate_has_last = 0;
-
-        if(annotate_has_last) {
-          printf("#L %u 0; red\n", annotate_last);
-        }
-        printf("#L %u 1; red\n", nexthop->u8[sizeof(uip_ipaddr_t) - 1]);
-        annotate_last = nexthop->u8[sizeof(uip_ipaddr_t) - 1];
-        annotate_has_last = 1;
-      }
-#endif /* TCPIP_CONF_ANNOTATE_TRANSMISSIONS */
-    }
-
-    /* End of next hop determination */
-
-#if UIP_CONF_IPV6_RPL 
+#ifdef EDGE_ROUTER
+	nexthop = &UIP_IP_BUF->destipaddr;
+#endif /*EDGE_ROUTER*/
+#ifdef ROUTER	
+	if (UIP_ICMP_BUF->type == ICMP6_RPL)   // ICMP control message
+		  nexthop = &UIP_IP_BUF->destipaddr;
+	  else 
+	  nexthop = next_route(&UIP_IP_BUF->destipaddr);     
+#endif /*ROUTER*/
+#ifdef LEAF
+      	  nexthop = next_route(&UIP_IP_BUF->destipaddr);     
+#endif /*LEAF*/
+/*#if UIP_CONF_IPV6_RPL 
     if(rpl_update_header_final(nexthop)) {
       uip_len = 0;
       return;
     }
-#endif /* UIP_CONF_IPV6_RPL */
+#endif *//* UIP_CONF_IPV6_RPL */
     nbr = uip_ds6_nbr_lookup(ds6_neighbors, nexthop);
     if(nbr == NULL) {
 #if UIP_ND6_SEND_NA

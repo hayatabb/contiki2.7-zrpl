@@ -86,13 +86,14 @@ static struct ctimer dismiss_timer;
 void dismiss_subnet(void *ptr);    
 int router_accept_prefix(rpl_position_t *node_position);
 int router_give_out_prefix(rpl_position_t *node_position,int destination_goal, int prefix_request_time);
+int set_up_link_with_neighbor(void);
 #endif
 #ifdef LEAF
 int leaf_accept_prefix(rpl_position_t *node_position);
 #endif /*EDGE_ROUTER or ROUTER or LEAF*/
 
 uint8_t debug_test1 = 0;
-uint8_t debug_test2 = 0;
+
 /*---------------------------------------------------------------------------*/
 static int
 get_global_addr(uip_ipaddr_t *addr)
@@ -154,11 +155,11 @@ dis_input(void)    // finished
   int prefix_request_time; //request time 
 
    uip_ipaddr_copy(&from, &UIP_IP_BUF->srcipaddr);
-   /*
+  /*
   PRINTF("RPL: Received a DIS from ");
   PRINT6ADDR(&from);
   PRINTF("\n");
-				   */
+	*/			   
   
    if((nbr = uip_ds6_nbr_lookup(ds6_neighbors, &from)) == NULL)       
 	  if((nbr = uip_ds6_nbr_add(ds6_neighbors, &from, (uip_lladdr_t *)
@@ -196,12 +197,15 @@ dis_input(void)    // finished
 		if (destination_goal == RPL_LEAF) {
 		number_leaf++;
 		PRINTF("Subnet %x has %d subnet_leaves\n",my_info->my_prefix,number_leaf);
-		      //TODO: add_leaf_to_route_table();
+		if (add_to_leaf_table(&from, (uip_lladdr_t *)packetbuf_addr(PACKETBUF_ADDR_SENDER))){
+			PRINTF("Leave ");
+		    PRINT6ADDR(&from);
+			PRINTF(" is mine.\n");
+		}
 	}
 		else if (destination_goal == RPL_ROUTER) {
 			number_node++;
 			PRINTF("Subnet %x has %d subnet_routers\n",my_info->my_prefix,number_node);
-			//TODO: add_router_to_route_table();
 		}
 	}
 	else  if (uip_is_addr_linklocal_rplnodes_mcast(&UIP_IP_BUF->destipaddr)){
@@ -241,11 +245,11 @@ dis_output(uip_ipaddr_t *addr)
     uip_create_linklocal_rplnodes_mcast(&tmpaddr);
     addr = &tmpaddr;
   }
-  /*
+  
   PRINTF("RPL: Sending a DIS to ");
   PRINT6ADDR(addr);
   PRINTF("\n");
-  */
+  
   uip_icmp6_send(addr, ICMP6_RPL, RPL_CODE_DIS, pos);
 }
 /*---------------------------------------------------------------------------*/
@@ -256,6 +260,7 @@ dio_input(void)
   unsigned char *buffer;
   int pos;
   uip_ipaddr_t from;
+  uip_ipaddr_t *new_add;
   uip_ds6_nbr_t *nbr;
   uint8_t subopt_type;
   uint8_t nodes;            //number of nodes for the incoming subnet
@@ -278,11 +283,11 @@ dio_input(void)
 								0, NBR_REACHABLE)) != NULL) {
 		 
 		  stimer_set(&nbr->reachable, UIP_ND6_REACHABLE_TIME / 1000);
+		  /*
 		  PRINTF("RPL: Neighbor added to neighbor cache ");
 		  PRINT6ADDR(&from);
-		  PRINTF(", ");
-		  PRINT6ADDR((uip_lladdr_t *)packetbuf_addr(PACKETBUF_ADDR_SENDER));
 		  PRINTF("\n");
+					 */
 	     }
      }
   //buffer_length = uip_len - uip_l3_icmp_hdr_len;  
@@ -305,7 +310,7 @@ dio_input(void)
 	  has_prefix = RPL_NO_PREFIX;
 	  uip_ds6_return_prefix();
 	  request_time = REQUEST_TIME_MAX - 1;
-	  rpl_reset_periodic_timer();    
+	  rpl_reset_dis_periodic_timer();    
      }
       break;
 #endif /*ifdef ROUTER*/
@@ -325,7 +330,9 @@ dio_input(void)
 		   my_info->prefix_length = incoming_prefix_length;
 		   memcpy(&my_info->my_prefix ,&incoming_prefix, incoming_prefix_length/8);
 		   ctimer_set(&dismiss_timer, dismiss_interval*CLOCK_SECOND, dismiss_subnet,NULL);
-		   uip_ds6_add_prefix(my_info->my_prefix);
+		   new_add = uip_ds6_add_prefix(my_info->my_prefix);
+		   uip_ipaddr_copy(&my_info->my_address, new_add);  
+		   uip_ipaddr_copy(&super_router_addr,new_add);
 		   PRINTF("My_prefix is  %x\n", my_info->my_prefix);
 	   }
 	   if (destination_goal == RPL_SUPER_ROUTER)
@@ -333,9 +340,10 @@ dio_input(void)
 			   has_prefix = RPL_HAS_PREFIX;
 			   my_info->prefix_length = incoming_prefix_length;
 			   memcpy(&my_info->my_prefix ,&incoming_prefix, incoming_prefix_length/8);
-			    uip_ds6_add_prefix(my_info->my_prefix);
+			   new_add = uip_ds6_add_prefix(my_info->my_prefix);
+			    uip_ipaddr_copy(&my_info->my_address, new_add);  	   
+				uip_ipaddr_copy(&super_router_addr, &from);
 		       dis_output(&UIP_IP_BUF->srcipaddr);		
-			   uip_ds6_add_prefix(my_info->my_prefix);
 			   PRINTF("My_prefix is  %x\n", my_info->my_prefix);
 		   }   
 #endif /*ROUTER*/
@@ -344,10 +352,18 @@ dio_input(void)
 				  has_prefix = RPL_HAS_PREFIX;
 				  my_info->prefix_length = incoming_prefix_length;
 				  memcpy(&my_info->my_prefix ,&incoming_prefix, incoming_prefix_length/8);
+				  new_add = uip_ds6_add_prefix(my_info->my_prefix);
+				  uip_ipaddr_copy(&my_info->my_address, new_add);  	 
+				  if (add_to_agent_table(&from, (uip_lladdr_t *)
+				  packetbuf_addr(PACKETBUF_ADDR_SENDER))){
+						  PRINTF ("Add agent ");
+						  PRINT6ADDR(&from);
+						  PRINTF("\n");
+					  }
 				  dis_output(&UIP_IP_BUF->srcipaddr);
 				   PRINTF("My_prefix is  %x\n",my_info->my_prefix);
 			  }
-#endif	  /*ifdef LEAF*/
+#endif	  /*iLEAF*/
 			  }
       break;
     default:
@@ -362,12 +378,10 @@ void
 dio_output(uip_ipaddr_t *addr, uint16_t prefix)     //finished
 #else
 dio_output(uip_ipaddr_t *addr)
-#endif //ifdef EDGE_ROUTER
+#endif /*EDGE_ROUTER*/
 {
   unsigned char *buffer;
-  int pos;
-  uint8_t subopt_type;
-  pos = 0;
+  int pos = 0;
   uip_ipaddr_t tmpaddr;
   buffer = UIP_ICMP_PAYLOAD;
 #ifdef ROUTER
@@ -407,6 +421,65 @@ dio_output(uip_ipaddr_t *addr)
 	
     uip_icmp6_send(addr, ICMP6_RPL, RPL_CODE_DIO, pos);
 }
+/*---------------------------------------------------------------------------*/
+#ifdef ROUTER
+void
+dao_input(void)
+{   
+	//unsigned char *buffer;
+	//int pos;
+	uip_ipaddr_t from;
+	uip_ds6_nbr_t *nbr;
+	//int destination_goal;
+	
+	uip_ipaddr_copy(&from, &UIP_IP_BUF->srcipaddr);
+	if((nbr = uip_ds6_nbr_lookup(ds6_neighbors, &from)) == NULL)       
+		if((nbr = uip_ds6_nbr_add(ds6_neighbors, &from, (uip_lladdr_t *)
+								  packetbuf_addr(PACKETBUF_ADDR_SENDER),
+								  0, NBR_REACHABLE)) != NULL) {			
+			stimer_set(&nbr->reachable, UIP_ND6_REACHABLE_TIME / 1000);
+		}	
+	//buffer = UIP_ICMP_PAYLOAD;  
+	//pos = 0;
+	//destination_goal = buffer[pos++];
+	if (uip_is_addr_equal(&my_info->my_address, &UIP_IP_BUF->destipaddr)) {  // I can set up a link with this neighbor
+			if(add_to_subnet_route_table(&from,(uip_lladdr_t *)
+										 packetbuf_addr(PACKETBUF_ADDR_SENDER)))
+				PRINTF("Add to subnet route table\n");
+	}
+	if (uip_is_addr_linklocal_rplnodes_mcast(&UIP_IP_BUF->destipaddr))         //This neighbor is requesting for link
+		if (set_up_link_with_neighbor()) {    
+			int random = random_rand() % 64;
+			clock_delay(random*10000);  // random wait 8*random ms before DAO feedback
+			dao_output(&from);
+	}	
+}
+/*---------------------------------------------------------------------------*/
+void
+dao_output(uip_ipaddr_t *addr)
+{
+	unsigned char *buffer;
+	uip_ipaddr_t tmpaddr;
+	int pos;
+	
+	buffer = UIP_ICMP_PAYLOAD;
+	pos = 0;
+	buffer[pos++] = my_info->my_goal;
+	//buffer[pos++] = my_info->my_position.x_axis;
+	//buffer[pos++] = my_info->my_position.y_axis;
+	if(addr == NULL) {
+		uip_create_linklocal_rplnodes_mcast(&tmpaddr);
+		addr = &tmpaddr;
+	}
+	
+	PRINTF("RPL: Sending a DAO to ");
+	PRINT6ADDR(addr);
+	PRINTF("\n");
+	
+	uip_icmp6_send(addr, ICMP6_RPL, RPL_CODE_DAO, pos);
+}
+#endif /*ROUTER*/
+/*---------------------------------------------------------------------------*/
 #ifdef EDGE_ROUTER
 int
 edge_router_give_out_prefix(rpl_position_t *destination_position, uint8_t request_time){
@@ -428,6 +501,7 @@ edge_router_give_out_prefix(rpl_position_t *destination_position, uint8_t reques
       return 1;
   return 0;
   }
+  /*---------------------------------------------------------------------------*/
   uint16_t 
    calcu_subnet_prefix(rpl_position_t destination_position){               //Calculate prefix based on router position
 	  uint16_t sendout_prefix;
@@ -435,6 +509,7 @@ edge_router_give_out_prefix(rpl_position_t *destination_position, uint8_t reques
 	 sendout_prefix = (destination_position.y_axis<<8) + (destination_position.x_axis);
 	 return sendout_prefix;
   }
+  /*---------------------------------------------------------------------------*/
   int
   add_super_router_list(rpl_position_t *super_router_position){                                // Add a new super router to the list
 	  super_router_list_t *p = my_super_router_list;
@@ -450,6 +525,7 @@ edge_router_give_out_prefix(rpl_position_t *destination_position, uint8_t reques
       return 1; }
       return 0;
   }
+  /*---------------------------------------------------------------------------*/
   int check_super_router_list(rpl_position_t *super_router_position){                     // Check whether there is already a super router in the zone
 	  super_router_list_t *p;
 	  uint8_t distance;                            // here Manhattan Distance is used to simplify calculation
@@ -465,6 +541,7 @@ edge_router_give_out_prefix(rpl_position_t *destination_position, uint8_t reques
 	  return 1;
   }
 #endif
+  /*---------------------------------------------------------------------------*/
 #ifdef ROUTER
 int router_give_out_prefix(rpl_position_t *node_position,int destination_goal, int prefix_request_time){
 	uint8_t distance;                           // here Manhattan Distance is used to simplify calculation
@@ -476,7 +553,7 @@ int router_give_out_prefix(rpl_position_t *node_position,int destination_goal, i
 				if (prefix_request_time > REQUEST_TIME_MAX) return 1;                                     // too many times for prfix request
 				distance = abs(node_position->x_axis - my_info->my_position.x_axis)+
 						   abs(node_position->y_axis - my_info->my_position.y_axis);
-				if ((distance > SUBNET_RADIUS +10)||(number_leaf > SUBNET_ROUTER_MAX)) return 0;    // exceed threshold, refuse prefix request directly
+				if ((distance > SUBNET_RADIUS +10)||(number_leaf > SUBNET_LEAF_MAX)) return 0;    // exceed threshold, refuse prefix request directly
 				index = distance*3/2 + 5*number_leaf;                                                                  //normalization, 3/2 * distance/25 + number_node/5
 				random_index = random_rand() % 64;
 				if (random_index > index) return 1; 
@@ -498,6 +575,7 @@ int router_give_out_prefix(rpl_position_t *node_position,int destination_goal, i
 	}
 	return 0;
 }
+/*---------------------------------------------------------------------------*/
 int router_accept_prefix(rpl_position_t *node_position){
     uint8_t distance;                           // here Manhattan Distance is used to simplify calculation
 	uint16_t index;
@@ -505,13 +583,14 @@ int router_accept_prefix(rpl_position_t *node_position){
      
 	distance = abs(node_position->x_axis - my_info->my_position.x_axis)+
 			   abs(node_position->y_axis - my_info->my_position.y_axis);
-	if (distance > SUBNET_RADIUS + 10) return 0;        // too far
+	if ((distance > SUBNET_RADIUS + 10)&&(request_time<REQUEST_TIME_MAX)) return 0;        // too far
 	//if (request_time > REQUEST_TIME_MAX) request_time = 5;    //some selection when join subnet although there has been too many times for requesting
 	index = 100 * request_time / (distance*6/5);
 	random_index = random_rand() % 16;
 	if (index > random_index) return 1;
 	return 0;
 }
+/*---------------------------------------------------------------------------*/
 void 
 dismiss_subnet(void *ptr){
 	if ((number_node< SUBNET_ROUTER_MIN)&&(my_info->my_goal == RPL_SUPER_ROUTER)){
@@ -523,10 +602,18 @@ dismiss_subnet(void *ptr){
 		my_info->my_goal = RPL_ROUTER;
 		has_prefix = RPL_NO_PREFIX;
 		request_time = REQUEST_TIME_MAX - 1;
-		rpl_reset_periodic_timer();    
+		uip_ds6_return_prefix();
+		rpl_reset_dis_periodic_timer();    
 	}
   }
+int
+set_up_link_with_neighbor(void){
+	uint8_t random = random_rand() % 64;
+	if (random > 32) return 1;                            // TODO: this possibility is dependent on wireless communication current
+	return 0;
+}
 #endif  
+  /*---------------------------------------------------------------------------*/
 #ifdef LEAF
   int leaf_accept_prefix(rpl_position_t *node_position){
 	  uint8_t distance;                           // here Manhattan Distance is used to simplify calculation
@@ -536,18 +623,16 @@ dismiss_subnet(void *ptr){
 	  distance = abs(node_position->x_axis - my_info->my_position.x_axis)+
 				 abs(node_position->y_axis - my_info->my_position.y_axis);
 	  if (distance > SUBNET_RADIUS + 10) return 0;        // too far
-	  //if (request_time > REQUEST_TIME_MAX) request_time = 5;    //some selection when join subnet although there has been too many times for requesting
 	  index = 100 * request_time / (distance*6/5);
 	  random_index = random_rand() % 16;
 	  if (index > random_index) return 1;
 	  return 0;
   } 
 #endif /*LEAF*/
-  
+/*---------------------------------------------------------------------------*/
 void
 uip_rpl_input(void)
 {
-  //PRINTF("Received an RPL control message\n");
   switch(UIP_ICMP_BUF->icode) {
   case RPL_CODE_DIO:
 	//if (my_info->my_goal != RPL_EDGE_ROUTER)            //edge router do not nedd to recevie dio
@@ -557,8 +642,13 @@ uip_rpl_input(void)
 	//if (my_info->my_goal != RPL_LEAF)                  //leaf do not need to receive dis
     dis_input();
     break;
+#ifdef ROUTER
+  case RPL_CODE_DAO:
+    dao_input();
+	break;
+#endif
   default:
-    PRINTF("RPL: received an unknown ICMP6 code (%u)\n", UIP_ICMP_BUF->icode);
+    //PRINTF("RPL: received an unknown ICMP6 code (%u)\n", UIP_ICMP_BUF->icode);
     break;
     }
   uip_len = 0;

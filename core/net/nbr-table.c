@@ -38,6 +38,7 @@
 #include "lib/memb.h"
 #include "lib/list.h"
 #include "net/nbr-table.h"
+#include "net/uip-ds6-nbr.h"
 
 /* List of link-layer addresses of the neighbors, used as key in the tables */
 typedef struct nbr_table_key {
@@ -305,7 +306,6 @@ nbr_table_add_lladdr(nbr_table_t *table, const rimeaddr_t *lladdr)
   /* Initialize item data and set "used" bit */
   memset(item, 0, table->item_size);
   nbr_set_bit(used_map, table, item, 1);
-
   return item;
 }
 /*---------------------------------------------------------------------------*/
@@ -347,3 +347,4 @@ nbr_table_get_lladdr(nbr_table_t *table, void *item)
   nbr_table_key_t *key = key_from_item(table, item);
   return key != NULL ? &key->lladdr : NULL;
 }
+/*---------------------------------------------------------------------------*/

@@ -227,7 +227,6 @@ rpl_init(void)
   uip_ipaddr_t rplmaddr;
   uip_ds6_addr_t *my_ds6_addr;
   PRINTF("RPL started\n");
-  default_instance = NULL;
   my_info = memb_alloc(&info_mem);
   my_info->my_position.x_axis = node_loc_x;
   my_info->my_position.y_axis = node_loc_y;
@@ -251,6 +250,7 @@ rpl_init(void)
   has_prefix = RPL_NO_PREFIX;
   subnet_organ_timeout = 0;
   my_info->my_goal = RPL_ROUTER;
+  rpl_reset_dao_timer();
 #endif
 #ifdef LEAF
   request_time = 0;
@@ -258,7 +258,7 @@ rpl_init(void)
   my_info->my_goal = RPL_LEAF ;
 #endif
   rpl_dag_init();
-  rpl_reset_periodic_timer();
+  rpl_reset_dis_periodic_timer();
 
   /* add rpl multicast address */
   uip_create_linklocal_rplnodes_mcast(&rplmaddr);

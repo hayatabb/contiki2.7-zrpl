@@ -273,16 +273,12 @@ void dio_output(uip_ipaddr_t *addr, uint16_t prefix);
 #else
 void dio_output(uip_ipaddr_t *addr);
 #endif
-//void dao_output(rpl_parent_t *, uint8_t lifetime);
+void dao_output(uip_ipaddr_t *addr);
 //void dao_output_target(rpl_parent_t *, uip_ipaddr_t *, uint8_t lifetime);
 void dao_ack_output(rpl_instance_t *, uip_ipaddr_t *, uint8_t);
 
 /* RPL logic functions. */
 void rpl_join_dag(uip_ipaddr_t *from, rpl_dio_t *dio);
-void rpl_join_instance(uip_ipaddr_t *from, rpl_dio_t *dio);
-void rpl_local_repair(rpl_instance_t *instance);
-void rpl_process_dio(uip_ipaddr_t *, rpl_dio_t *);
-int rpl_process_parent_event(rpl_instance_t *, rpl_parent_t *);
 
 /* DAG object management. */
 rpl_dag_t *rpl_alloc_dag(uint8_t, uip_ipaddr_t *);
@@ -292,10 +288,7 @@ rpl_parent_t *rpl_add_parent(rpl_dag_t *, rpl_dio_t *dio, uip_ipaddr_t *);
 rpl_parent_t *rpl_find_parent(rpl_dag_t *, uip_ipaddr_t *);
 rpl_parent_t *rpl_find_parent_any_dag(rpl_instance_t *instance, uip_ipaddr_t *addr);
 
-void rpl_move_parent(rpl_dag_t *dag_src, rpl_dag_t *dag_dst, rpl_parent_t *parent);
 rpl_parent_t *rpl_select_parent(rpl_dag_t *dag);
-rpl_dag_t *rpl_select_dag(rpl_instance_t *instance,rpl_parent_t *parent);
-
 
 /* RPL routing table functions. */
 void rpl_remove_routes(rpl_dag_t *dag);
@@ -305,11 +298,9 @@ uip_ds6_route_t *rpl_add_route(rpl_dag_t *dag, uip_ipaddr_t *prefix,
 void rpl_purge_routes(void);
 
 /* Timer functions. */
-void rpl_schedule_dao(rpl_instance_t *);
-void rpl_reset_dior_timer(void);
-void rpl_reset_periodic_timer(void);
+void rpl_reset_dao_timer(void);
+void rpl_reset_dis_periodic_timer(void);
 
 /* Route poisoning. */
-void rpl_poison_routes(rpl_dag_t *, rpl_parent_t *);
 
 #endif /* RPL_PRIVATE_H */

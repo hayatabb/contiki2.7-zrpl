@@ -46,7 +46,9 @@
 #include "lib/random.h"
 #include "net/uip-nd6.h"
 #include "net/uip-ds6.h"
+#include "net/uip-ds6-nbr.h"
 #include "net/uip-packetqueue.h"
+
 
 #if UIP_CONF_IPV6
 
@@ -189,7 +191,10 @@ uip_ds6_periodic(void)
   uip_ds6_neighbor_periodic(insubnet_table); 
   uip_ds6_neighbor_periodic(outsubnet_table);
   uip_ds6_neighbor_periodic(leaf_table);
-#endif
+#endif  /*ROUTER*/
+#ifdef LEAF
+  uip_ds6_neighbor_periodic(agent_table);  //TODO: deep sleep mode
+#endif /*LEAF*/
 #if UIP_CONF_ROUTER & UIP_ND6_SEND_RA
   /* Periodic RA sending */
   if(stimer_expired(&uip_ds6_timer_ra) && (uip_len == 0)) {
@@ -405,16 +410,18 @@ uip_ds6_get_link_local(int8_t state)
  * state = -1 => any address is ok. Otherwise state = desired state of addr.
  * (TENTATIVE, PREFERRED, DEPRECATED)
  */
-void 
+uip_ipaddr_t *
 uip_ds6_add_prefix(uint16_t prefix)
 {
   for(locaddr = uip_ds6_if.addr_list;
       locaddr < uip_ds6_if.addr_list + UIP_DS6_ADDR_NB; locaddr++) {
   if((locaddr!= NULL)&&locaddr->isused){
-       //&& !(uip_is_addr_link_local(&locaddr->ipaddr))) {
-      locaddr->ipaddr.u16[3] = locaddr->ipaddr.u16[3] + prefix;
+	  locaddr->ipaddr.u16[3] = prefix;
     }
   }
+   uip_ds6_addr_t *my_ds6 = uip_ds6_get_link_local(-1);
+   if (my_ds6 == NULL) return NULL;
+  return &my_ds6->ipaddr;
 }
 /*---------------------------------------------------------------------------*/
 void 

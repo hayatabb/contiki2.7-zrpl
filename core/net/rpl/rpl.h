@@ -96,15 +96,13 @@ typedef uint16_t rpl_ocp_t;
 #define SUBNET_ROUTER_MIN                       3   //min number of nodes in subnet in first division attempt
 #define SUBNET_ROUTER_MAX                       6   //max nunber of nodes in subnet in first devision attempt
 #define SUBNET_RADIUS                    25  //area Manhattan radius of subnet
-#define SUBNET_LEAF_MAX                      // max number of leaves of one router 
-
-#define MAX_LEAF_NUMBER                  5   // max number of leaves of a route
+#define SUBNET_LEAF_MAX                 6    // max number of leaves of one router 
 
 #define RPL_DISMISS_INTERVAL             120 //subnet dismiss timer, s
 #define MAX_DIO_TIMER_INTERVAL           30000 // DIO_timer interval increases gradually, s 
 #define REQUEST_TIME_MAX                7   // maxmal request time
 
-#define ROUTER
+#define LEAF
 
 struct rpl_metric_object_energy {
   uint8_t flags;
@@ -198,6 +196,7 @@ uint8_t number_node;                        // current number of nodes in a subn
 uint8_t number_leaf;                        // current number of leaves of a router
 int has_prefix;                             
 int subnet_organ_timeout;                   //subnet dismiss timer
+uip_ipaddr_t super_router_addr;         //addr of local subnet super router
 uint8_t request_time;                       //no matter whether routers have refused DIO from some super router
 
 /*---------------------------------------------------------------------------*/
@@ -285,7 +284,6 @@ struct rpl_instance {
 void rpl_init(void);
 void super_router_list_init(void);
 void uip_rpl_input(void);
-rpl_dag_t *rpl_set_root(uint8_t instance_id, uip_ipaddr_t * dag_id);
 int rpl_set_prefix(rpl_dag_t *dag, uip_ipaddr_t *prefix, unsigned len);
 int rpl_repair_root(uint8_t instance_id);
 int rpl_set_default_route(rpl_instance_t *instance, uip_ipaddr_t *from);

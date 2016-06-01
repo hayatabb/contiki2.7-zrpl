@@ -8,7 +8,7 @@
   <project EXPORT="discard">[APPS_DIR]/powertracker</project>
   <simulation>
     <title>ND2.7</title>
-    <randomseed>123456</randomseed>
+    <randomseed>123458</randomseed>
     <motedelay_us>1000000</motedelay_us>
     <radiomedium>
       se.sics.cooja.radiomediums.UDGM
@@ -80,8 +80,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>46.504675160464735</x>
-        <y>62.61099690529603</y>
+        <x>38.84196910964263</x>
+        <y>42.694373733962976</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -96,14 +96,14 @@
           <stops>false</stops>
           <codefile>[CONTIKI_DIR]/core/net/rpl/rpl-icmp6.c</codefile>
           <line>333</line>
-          <contikicode>my_info-&gt;prefix_length = incoming_prefix_length;</contikicode>
+          <contikicode>new_add = uip_ds6_add_prefix(my_info-&gt;my_prefix);</contikicode>
           <color>-16777216</color>
         </breakpoint>
       </breakpoints>
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>8.652102625135537</x>
-        <y>40.82695931224088</y>
+        <x>9.585809835996578</x>
+        <y>40.826959312240895</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -116,8 +116,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>82.41497228315801</x>
-        <y>57.322453370786</y>
+        <x>80.8587935983896</x>
+        <y>58.56739631860073</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -130,7 +130,7 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>89.57339423309267</x>
+        <x>88.63968702223163</x>
         <y>6.902263984289622</y>
         <z>0.0</z>
       </interface_config>
@@ -144,8 +144,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>93.65244345080613</x>
-        <y>63.43725799775353</y>
+        <x>93.93069455044422</x>
+        <y>64.79211105767436</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -158,8 +158,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>46.0003910595773</x>
-        <y>19.351693462436874</y>
+        <x>41.33185500527208</x>
+        <y>20.5966364102516</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -172,8 +172,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>20.79029636632911</x>
-        <y>57.01121763383231</y>
+        <x>23.280182261958558</x>
+        <y>56.388746159924956</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -186,8 +186,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>92.3745158656758</x>
-        <y>46.11796684045348</y>
+        <x>92.6857516026295</x>
+        <y>47.67414552522188</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -197,11 +197,47 @@
       <motetype_identifier>sky2</motetype_identifier>
     </mote>
     <mote>
-      <breakpoints />
+      <breakpoints>
+        <breakpoint>
+          <stops>false</stops>
+          <codefile>[CONTIKI_DIR]/core/net/rpl/rpl-icmp6.c</codefile>
+          <line>340</line>
+          <contikicode>has_prefix = RPL_HAS_PREFIX;</contikicode>
+          <color>-16777216</color>
+        </breakpoint>
+        <breakpoint>
+          <stops>false</stops>
+          <codefile>[CONTIKI_DIR]/core/net/rpl/rpl-icmp6.c</codefile>
+          <line>249</line>
+          <contikicode>PRINTF("RPL: Sending a DIS to ");</contikicode>
+          <color>-16777216</color>
+        </breakpoint>
+        <breakpoint>
+          <stops>false</stops>
+          <codefile>[CONTIKI_DIR]/core/net/uip-icmp6.c</codefile>
+          <line>272</line>
+          <contikicode>tcpip_ipv6_output();</contikicode>
+          <color>-16777216</color>
+        </breakpoint>
+        <breakpoint>
+          <stops>false</stops>
+          <codefile>[CONTIKI_DIR]/core/net/uip-ds6.c</codefile>
+          <line>323</line>
+          <contikicode>}</contikicode>
+          <color>-16777216</color>
+        </breakpoint>
+        <breakpoint>
+          <stops>false</stops>
+          <codefile>[CONTIKI_DIR]/core/net/uip-ds6-route.c</codefile>
+          <line>252</line>
+          <contikicode>}</contikicode>
+          <color>-16777216</color>
+        </breakpoint>
+      </breakpoints>
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>56.27117037904878</x>
-        <y>13.74945019727061</y>
+        <x>60.62847069640032</x>
+        <y>22.152815095020006</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -211,11 +247,19 @@
       <motetype_identifier>sky2</motetype_identifier>
     </mote>
     <mote>
-      <breakpoints />
+      <breakpoints>
+        <breakpoint>
+          <stops>false</stops>
+          <codefile>[CONTIKI_DIR]/core/net/tcpip.c</codefile>
+          <line>571</line>
+          <contikicode>if (UIP_ICMP_BUF-&gt;type == ICMP6_RPL)   // ICMP control message</contikicode>
+          <color>-16777216</color>
+        </breakpoint>
+      </breakpoints>
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>16.34215212607608</x>
-        <y>47.068082106207655</y>
+        <x>19.856589155468072</x>
+        <y>42.694373733962976</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -228,7 +272,7 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>75.25655033322334</x>
+        <x>69.3430713311034</x>
         <y>87.51231985529309</y>
         <z>0.0</z>
       </interface_config>
@@ -242,8 +286,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>40.709383531364715</x>
-        <y>51.72021010561974</y>
+        <x>46.000391059577304</x>
+        <y>56.69998189687864</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -256,8 +300,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>52.536341535604606</x>
-        <y>77.86401200972897</y>
+        <x>35.107140266198456</x>
+        <y>68.52693990111852</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -270,8 +314,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>59.19817771306797</x>
-        <y>66.19873205959418</y>
+        <x>55.95993464209511</x>
+        <y>66.97076121635013</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -284,8 +328,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>18.92288194460702</x>
-        <y>85.02243395966363</y>
+        <x>21.10153210328279</x>
+        <y>84.08872674880259</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -298,8 +342,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>63.273168761059175</x>
-        <y>87.25335964926488</y>
+        <x>46.93409827043835</x>
+        <y>83.46625527489523</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -312,8 +356,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>0.37120464816128296</x>
-        <y>56.14193454178632</y>
+        <x>1.8049164121545438</x>
+        <y>55.143803212110235</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -326,8 +370,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>69.3430713311034</x>
-        <y>48.91908847303661</y>
+        <x>66.23071396156658</x>
+        <y>54.21009600124919</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -354,8 +398,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>47.5565697443457</x>
-        <y>9.08091414296539</y>
+        <x>47.245334007392024</x>
+        <y>8.147206932104348</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -368,8 +412,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>86.81378745844574</x>
-        <y>19.757109250709227</y>
+        <x>83.97115096792643</x>
+        <y>24.64270099064946</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -382,8 +426,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>67.78480059070256</x>
-        <y>39.522098487607906</y>
+        <x>69.3430713311034</x>
+        <y>33.979773099259894</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -396,8 +440,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>90.50710144395372</x>
-        <y>82.84378380098786</y>
+        <x>94.24193028739789</x>
+        <y>82.2213123270805</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -410,8 +454,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>96.73181618302735</x>
-        <y>23.08652230588105</y>
+        <x>93.61945881349055</x>
+        <y>29.311237044954677</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -424,8 +468,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>15.188053101162845</x>
-        <y>78.48648348363632</y>
+        <x>10.51951704685762</x>
+        <y>77.86401200972897</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -435,11 +479,61 @@
       <motetype_identifier>sky2</motetype_identifier>
     </mote>
     <mote>
-      <breakpoints />
+      <breakpoints>
+        <breakpoint>
+          <stops>false</stops>
+          <codefile>[CONTIKI_DIR]/core/net/rpl/rpl-icmp6.c</codefile>
+          <line>335</line>
+          <contikicode>uip_ipaddr_copy(&amp;super_router_addr,new_add);</contikicode>
+          <color>-16777216</color>
+        </breakpoint>
+        <breakpoint>
+          <stops>false</stops>
+          <codefile>[CONTIKI_DIR]/core/net/rpl/rpl-icmp6.c</codefile>
+          <line>249</line>
+          <contikicode>PRINTF("RPL: Sending a DIS to ");</contikicode>
+          <color>-16777216</color>
+        </breakpoint>
+        <breakpoint>
+          <stops>false</stops>
+          <codefile>[CONTIKI_DIR]/core/net/tcpip.c</codefile>
+          <line>551</line>
+          <contikicode>if(uip_len == 0) {</contikicode>
+          <color>-16777216</color>
+        </breakpoint>
+        <breakpoint>
+          <stops>false</stops>
+          <codefile>[CONTIKI_DIR]/core/net/rpl/rpl-icmp6.c</codefile>
+          <line>340</line>
+          <contikicode>has_prefix = RPL_HAS_PREFIX;</contikicode>
+          <color>-16777216</color>
+        </breakpoint>
+        <breakpoint>
+          <stops>false</stops>
+          <codefile>[CONTIKI_DIR]/core/net/uip-icmp6.c</codefile>
+          <line>272</line>
+          <contikicode>tcpip_ipv6_output();</contikicode>
+          <color>-16777216</color>
+        </breakpoint>
+        <breakpoint>
+          <stops>false</stops>
+          <codefile>[CONTIKI_DIR]/core/net/uip-ds6.c</codefile>
+          <line>319</line>
+          <contikicode>return 1;</contikicode>
+          <color>-16777216</color>
+        </breakpoint>
+        <breakpoint>
+          <stops>false</stops>
+          <codefile>[CONTIKI_DIR]/core/net/uip-ds6.c</codefile>
+          <line>322</line>
+          <contikicode>return 0;</contikicode>
+          <color>-16777216</color>
+        </breakpoint>
+      </breakpoints>
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>23.341980669198392</x>
-        <y>22.8299096831475</y>
+        <x>18.300410470699664</x>
+        <y>21.219107884158962</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -452,8 +546,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>16.041560507385512</x>
-        <y>14.887610870387569</y>
+        <x>16.432996048977575</x>
+        <y>6.902263984289622</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -466,8 +560,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>79.68243420442079</x>
-        <y>40.45285673095962</y>
+        <x>79.61385065057489</x>
+        <y>41.449430786148255</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -477,11 +571,19 @@
       <motetype_identifier>sky2</motetype_identifier>
     </mote>
     <mote>
-      <breakpoints />
+      <breakpoints>
+        <breakpoint>
+          <stops>false</stops>
+          <codefile>[CONTIKI_DIR]/core/net/rpl/rpl-icmp6.c</codefile>
+          <line>340</line>
+          <contikicode>has_prefix = RPL_HAS_PREFIX;</contikicode>
+          <color>-16777216</color>
+        </breakpoint>
+      </breakpoints>
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>10.208281309903944</x>
-        <y>17.484279040714785</y>
+        <x>3.3610950969229507</x>
+        <y>19.662929199390557</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -494,8 +596,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>83.34867949401907</x>
-        <y>85.644905433571</y>
+        <x>74.3228431223623</x>
+        <y>77.55277627277529</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -508,8 +610,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>12.421871114989912</x>
-        <y>98.06604075381337</y>
+        <x>13.631874416394444</x>
+        <y>93.7370345943667</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -522,8 +624,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>11.141988520764988</x>
-        <y>60.74604647727649</y>
+        <x>11.453224257718665</x>
+        <y>62.302225162044905</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -536,8 +638,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>39.46444058354999</x>
-        <y>70.39435432284061</y>
+        <x>54.714991694280386</x>
+        <y>46.42920257740715</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -564,8 +666,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.mspmote.interfaces.MspPosition
-        <x>85.52732965269482</x>
-        <y>95.29321327913512</y>
+        <x>86.46103686355586</x>
+        <y>93.42579885741303</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -592,10 +694,10 @@
       <skin>se.sics.cooja.plugins.skins.TrafficVisualizerSkin</skin>
       <skin>se.sics.cooja.plugins.skins.UDGMVisualizerSkin</skin>
       <skin>se.sics.cooja.plugins.skins.MoteTypeVisualizerSkin</skin>
-      <viewport>3.212998641440786 0.0 0.0 3.212998641440786 39.20080601983327 16.823035195611777</viewport>
+      <viewport>3.212998641440786 0.0 0.0 3.212998641440786 20.20080601983322 5.823035195611776</viewport>
     </plugin_config>
     <width>400</width>
-    <z>3</z>
+    <z>2</z>
     <height>400</height>
     <location_x>1</location_x>
     <location_y>1</location_y>
@@ -603,15 +705,15 @@
   <plugin>
     se.sics.cooja.plugins.LogListener
     <plugin_config>
-      <filter />
+      <filter>I add</filter>
       <formatted_time />
       <coloring />
     </plugin_config>
-    <width>748</width>
+    <width>697</width>
     <z>1</z>
     <height>240</height>
-    <location_x>350</location_x>
-    <location_y>189</location_y>
+    <location_x>396</location_x>
+    <location_y>165</location_y>
   </plugin>
   <plugin>
     se.sics.cooja.plugins.TimeLine
@@ -658,8 +760,8 @@
       <zoomfactor>500.0</zoomfactor>
     </plugin_config>
     <width>1101</width>
-    <z>2</z>
-    <height>166</height>
+    <z>4</z>
+    <height>247</height>
     <location_x>-10</location_x>
     <location_y>455</location_y>
   </plugin>
@@ -670,24 +772,10 @@
       <decorations>true</decorations>
     </plugin_config>
     <width>421</width>
-    <z>5</z>
+    <z>3</z>
     <height>160</height>
     <location_x>680</location_x>
     <location_y>0</location_y>
-  </plugin>
-  <plugin>
-    se.sics.cooja.mspmote.plugins.MspCodeWatcher
-    <mote_arg>2</mote_arg>
-    <plugin_config>
-      <tab>0</tab>
-      <rule from="/home/johnzuo/Downloads/contiki-2.7/examples/ipv6/rpl-udp/" to="/" />
-    </plugin_config>
-    <width>750</width>
-    <z>-1</z>
-    <height>500</height>
-    <location_x>150</location_x>
-    <location_y>150</location_y>
-    <minimized>true</minimized>
   </plugin>
   <plugin>
     se.sics.cooja.plugins.VariableWatcher
@@ -698,7 +786,7 @@
       <array_length>20</array_length>
     </plugin_config>
     <width>932</width>
-    <z>4</z>
+    <z>5</z>
     <height>228</height>
     <location_x>-1257</location_x>
     <location_y>41</location_y>

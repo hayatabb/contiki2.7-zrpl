@@ -101,6 +101,7 @@ uip_lladdr_t *uip_ds6_nbr_lladdr_from_ipaddr(nbr_table_t *nbr_table, uip_ipaddr_
 void uip_ds6_link_neighbor_callback(int status, int numtx);
 void uip_ds6_neighbor_periodic(nbr_table_t *nbr_table);
 int uip_ds6_nbr_num(nbr_table_t *nbr_table);
+uip_ipaddr_t * next_route(uip_ipaddr_t *ipaddr);
 
 /**
  * \brief
@@ -112,5 +113,12 @@ int uip_ds6_nbr_num(nbr_table_t *nbr_table);
  *     table is empty.
  */
 uip_ds6_nbr_t *uip_ds6_get_least_lifetime_neighbor(nbr_table_t *nbr_table);
-
+#ifdef ROUTER
+int add_to_subnet_route_table(uip_ipaddr_t *ipaddr,uip_lladdr_t *lladdr);
+int add_to_leaf_table(uip_ipaddr_t *ipaddr, uip_lladdr_t *lladdr);
+#endif /*ROUTER*/
+#ifdef LEAF
+int add_to_agent_table(uip_ipaddr_t *ipaddr, uip_lladdr_t *lladdr)
+uip_ipaddr_t *  next_route(uip_ipaddr_t * ipaddr)
+#endif /*LEAF*/
 #endif /* __UIP_DS6_NEIGHBOR_H__ */
